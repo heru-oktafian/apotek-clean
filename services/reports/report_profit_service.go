@@ -3,7 +3,7 @@ package services
 import (
 	"time"
 
-	models "github.com/heru-oktafian/fiber-apotek/models"
+	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
 

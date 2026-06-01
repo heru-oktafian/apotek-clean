@@ -5,7 +5,7 @@ import (
 	fmt "fmt"
 	time "time"
 
-	models "github.com/heru-oktafian/fiber-apotek/models"
+	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
 

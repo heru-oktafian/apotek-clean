@@ -4,8 +4,8 @@ import (
 	log "log"
 	time "time"
 
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	models "github.com/heru-oktafian/fiber-apotek/models"
+	helpers "apotek-clean/helpers"
+	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
 

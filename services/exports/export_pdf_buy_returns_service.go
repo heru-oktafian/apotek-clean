@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/heru-oktafian/fiber-apotek/models"
+	"apotek-clean/models"
 	"github.com/johnfercher/maroto/v2"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"

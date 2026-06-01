@@ -2,8 +2,8 @@ package routes
 
 import (
 	fiber "github.com/gofiber/fiber/v2"
-	controllers "github.com/heru-oktafian/fiber-apotek/controllers/transactions"
-	middlewares "github.com/heru-oktafian/fiber-apotek/middlewares"
+	controllers "apotek-clean/controllers/transactions"
+	middlewares "apotek-clean/middlewares"
 )
 
 func TransSaleRoutes(app *fiber.App) {

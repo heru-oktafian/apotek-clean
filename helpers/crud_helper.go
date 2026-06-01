@@ -9,8 +9,8 @@ import (
 	time "time"
 
 	fiber "github.com/gofiber/fiber/v2"
-	models "github.com/heru-oktafian/fiber-apotek/models"
-	services "github.com/heru-oktafian/fiber-apotek/services"
+	models "apotek-clean/models"
+	services "apotek-clean/services"
 	gorm "gorm.io/gorm"
 )
 

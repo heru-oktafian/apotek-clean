@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/heru-oktafian/fiber-apotek/services"
-	export_services "github.com/heru-oktafian/fiber-apotek/services/exports"
+	"apotek-clean/services"
+	export_services "apotek-clean/services/exports"
 )
 
 type PdfPurchaseHandler struct {

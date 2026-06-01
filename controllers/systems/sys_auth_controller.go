@@ -11,10 +11,10 @@ import (
 
 	fiber "github.com/gofiber/fiber/v2"
 	jwt "github.com/golang-jwt/jwt/v5"
-	config "github.com/heru-oktafian/fiber-apotek/configs"
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	models "github.com/heru-oktafian/fiber-apotek/models"
-	services "github.com/heru-oktafian/fiber-apotek/services"
+	config "apotek-clean/configs"
+	helpers "apotek-clean/helpers"
+	models "apotek-clean/models"
+	services "apotek-clean/services"
 	bcrypt "golang.org/x/crypto/bcrypt"
 )
 

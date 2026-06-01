@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/heru-oktafian/fiber-apotek/models"
+	"apotek-clean/models"
 	"github.com/xuri/excelize/v2"
 )
 

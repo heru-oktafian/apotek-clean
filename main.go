@@ -10,11 +10,11 @@ import (
 	cors "github.com/gofiber/fiber/v2/middleware/cors"
 	limiter "github.com/gofiber/fiber/v2/middleware/limiter"
 	logger "github.com/gofiber/fiber/v2/middleware/logger"
-	configs "github.com/heru-oktafian/fiber-apotek/configs"
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	routes "github.com/heru-oktafian/fiber-apotek/routes"
-	seeders "github.com/heru-oktafian/fiber-apotek/seeders"
-	crons "github.com/heru-oktafian/fiber-apotek/services/crons"
+	configs "apotek-clean/configs"
+	helpers "apotek-clean/helpers"
+	routes "apotek-clean/routes"
+	seeders "apotek-clean/seeders"
+	crons "apotek-clean/services/crons"
 	godotenv "github.com/joho/godotenv"
 )
 

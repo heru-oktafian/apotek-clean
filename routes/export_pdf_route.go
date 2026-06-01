@@ -4,12 +4,12 @@ import (
 	"log"
 
 	fiber "github.com/gofiber/fiber/v2"
-	configs "github.com/heru-oktafian/fiber-apotek/configs"
-	middlewares "github.com/heru-oktafian/fiber-apotek/middlewares"
-	export_services "github.com/heru-oktafian/fiber-apotek/services/exports"
-	pdf_audits "github.com/heru-oktafian/fiber-apotek/services/exports/pdf/audits"
-	pdf_masters "github.com/heru-oktafian/fiber-apotek/services/exports/pdf/masters"
-	pdf_transactions "github.com/heru-oktafian/fiber-apotek/services/exports/pdf/transactions"
+	configs "apotek-clean/configs"
+	middlewares "apotek-clean/middlewares"
+	export_services "apotek-clean/services/exports"
+	pdf_audits "apotek-clean/services/exports/pdf/audits"
+	pdf_masters "apotek-clean/services/exports/pdf/masters"
+	pdf_transactions "apotek-clean/services/exports/pdf/transactions"
 )
 
 func ExportPDFRoutes(app *fiber.App) {

@@ -7,7 +7,7 @@ import (
 	strconv "strconv"
 	time "time"
 
-	models "github.com/heru-oktafian/fiber-apotek/models"
+	models "apotek-clean/models"
 	redis "github.com/redis/go-redis/v9"
 	postgres "gorm.io/driver/postgres"
 	gorm "gorm.io/gorm"

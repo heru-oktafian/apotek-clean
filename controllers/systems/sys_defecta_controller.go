@@ -7,10 +7,10 @@ import (
 	time "time"
 
 	fiber "github.com/gofiber/fiber/v2"
-	configs "github.com/heru-oktafian/fiber-apotek/configs"
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	models "github.com/heru-oktafian/fiber-apotek/models"
-	services "github.com/heru-oktafian/fiber-apotek/services"
+	configs "apotek-clean/configs"
+	helpers "apotek-clean/helpers"
+	models "apotek-clean/models"
+	services "apotek-clean/services"
 )
 
 // CreateDefecta handles the creation of a new defecta.

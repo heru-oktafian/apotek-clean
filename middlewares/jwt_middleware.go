@@ -4,9 +4,9 @@ import (
 	strings "strings"
 
 	fiber "github.com/gofiber/fiber/v2"
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	models "github.com/heru-oktafian/fiber-apotek/models"
-	services "github.com/heru-oktafian/fiber-apotek/services"
+	helpers "apotek-clean/helpers"
+	models "apotek-clean/models"
+	services "apotek-clean/services"
 )
 
 func JWTMiddleware(c *fiber.Ctx) error {

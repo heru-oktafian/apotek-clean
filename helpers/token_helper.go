@@ -8,7 +8,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v2"
 	jwt "github.com/golang-jwt/jwt/v5"
-	configs "github.com/heru-oktafian/fiber-apotek/configs"
+	configs "apotek-clean/configs"
 )
 
 // TokenValidation memvalidasi token

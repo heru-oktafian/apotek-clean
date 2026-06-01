@@ -1,8 +1,8 @@
 package seeders
 
 import (
-	config "github.com/heru-oktafian/fiber-apotek/configs"
-	models "github.com/heru-oktafian/fiber-apotek/models"
+	config "apotek-clean/configs"
+	models "apotek-clean/models"
 )
 
 // SupplierSeed function untuk menambahkan data supplier ke database

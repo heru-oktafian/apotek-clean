@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/heru-oktafian/fiber-apotek/configs"
+	"apotek-clean/configs"
 	"github.com/xuri/excelize/v2"
 )
 

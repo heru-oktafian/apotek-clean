@@ -4,10 +4,10 @@ import (
 	os "os"
 
 	fiber "github.com/gofiber/fiber/v2"
-	controllers "github.com/heru-oktafian/fiber-apotek/controllers/systems"
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	middlewares "github.com/heru-oktafian/fiber-apotek/middlewares"
-	services "github.com/heru-oktafian/fiber-apotek/services"
+	controllers "apotek-clean/controllers/systems"
+	helpers "apotek-clean/helpers"
+	middlewares "apotek-clean/middlewares"
+	services "apotek-clean/services"
 )
 
 func AuthRoutes(app *fiber.App) {

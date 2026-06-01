@@ -6,8 +6,8 @@ import (
 	"time"
 
 	fiber "github.com/gofiber/fiber/v2"
-	services "github.com/heru-oktafian/fiber-apotek/services"
-	export_services "github.com/heru-oktafian/fiber-apotek/services/exports"
+	services "apotek-clean/services"
+	export_services "apotek-clean/services/exports"
 )
 
 type PdfProductLabelHandler struct {

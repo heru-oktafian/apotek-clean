@@ -4,14 +4,14 @@ import (
 	"log"
 
 	fiber "github.com/gofiber/fiber/v2"
-	configs "github.com/heru-oktafian/fiber-apotek/configs"
-	middlewares "github.com/heru-oktafian/fiber-apotek/middlewares"
-	export_services "github.com/heru-oktafian/fiber-apotek/services/exports"
-	excel_audits "github.com/heru-oktafian/fiber-apotek/services/exports/excel/audits"
-	excel_masters "github.com/heru-oktafian/fiber-apotek/services/exports/excel/masters"
-	excel_reports "github.com/heru-oktafian/fiber-apotek/services/exports/excel/reports"
-	excel_systems "github.com/heru-oktafian/fiber-apotek/services/exports/excel/systems"
-	excel_transactions "github.com/heru-oktafian/fiber-apotek/services/exports/excel/transactions"
+	configs "apotek-clean/configs"
+	middlewares "apotek-clean/middlewares"
+	export_services "apotek-clean/services/exports"
+	excel_audits "apotek-clean/services/exports/excel/audits"
+	excel_masters "apotek-clean/services/exports/excel/masters"
+	excel_reports "apotek-clean/services/exports/excel/reports"
+	excel_systems "apotek-clean/services/exports/excel/systems"
+	excel_transactions "apotek-clean/services/exports/excel/transactions"
 )
 
 func ExportExcelRoutes(app *fiber.App) {

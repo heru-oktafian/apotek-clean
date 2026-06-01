@@ -4,10 +4,10 @@ import (
 	strings "strings"
 
 	fiber "github.com/gofiber/fiber/v2"
-	config "github.com/heru-oktafian/fiber-apotek/configs"
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	models "github.com/heru-oktafian/fiber-apotek/models"
-	services "github.com/heru-oktafian/fiber-apotek/services"
+	config "apotek-clean/configs"
+	helpers "apotek-clean/helpers"
+	models "apotek-clean/models"
+	services "apotek-clean/services"
 )
 
 // CreateProductCategory buat product category

@@ -5,8 +5,8 @@ import (
 	log "log"
 	time "time"
 
-	config "github.com/heru-oktafian/fiber-apotek/configs"
-	models "github.com/heru-oktafian/fiber-apotek/models"
+	config "apotek-clean/configs"
+	models "apotek-clean/models"
 	clause "gorm.io/gorm/clause"
 )
 

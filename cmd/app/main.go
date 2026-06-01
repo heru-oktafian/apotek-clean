@@ -1,102 +1,130 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
-	"os"
+	log "log"
+	os "os"
+	strconv "strconv"
+	time "time"
 
-	"github.com/joho/godotenv"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	fiber "github.com/gofiber/fiber/v2"
+	cors "github.com/gofiber/fiber/v2/middleware/cors"
+	limiter "github.com/gofiber/fiber/v2/middleware/limiter"
+	logger "github.com/gofiber/fiber/v2/middleware/logger"
+	godotenv "github.com/joho/godotenv"
 
-	// Sesuaikan path import ini berdasarkan struktur proyek Anda
-	// Jika configs ada di internal/configs, gunakan path ini:
-	configs "apotek-clean/internal/configs" 
-	
-	// Adapters
-	driving_http "apotek-clean/internal/adapters/driving/http"
-	// ... import adapter driven (repository) yang akan di-inject
-	
-	// Core
-	"apotek-clean/internal/core/usecases"
-	// ... import entities, ports jika diperlukan di DI
-
-	// Frameworks
-	"apotek-clean/internal/frameworks/database"
-	"apotek-clean/internal/frameworks/web"
-	"apotek-clean/internal/frameworks/auth"
-	// ... import frameworks lain jika ada
+	configs "apotek-clean/configs"
+	helpers "apotek-clean/helpers"
+	routes "apotek-clean/routes"
+	seeders "apotek-clean/seeders"
+	crons "apotek-clean/services/crons"
 )
 
 func main() {
-	// 1. Load .env file
-	err := godotenv.Load() // Memuat file .env di root direktori
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: .env file not found, using environment variables")
+	}
+
+	configs.InitTimezone()
+	log.Println("🕒 Sekarang WIB:", time.Now().In(configs.Location))
+
+	serverPort := os.Getenv("APP_PORT")
+	if serverPort == "" {
+		serverPort = os.Getenv("PORT")
+	}
+	if serverPort == "" {
+		serverPort = os.Getenv("SERVER_PORT")
+	}
+	if serverPort == "" {
+		serverPort = "9001"
+	}
+
+	if err := configs.SetupDB(); err != nil {
+		log.Fatal(err)
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "seed" {
+		seeders.UserSeed()
+		seeders.BranchSeed()
+		seeders.UserBranchSeed()
+		seeders.UnitSeed()
+		seeders.UnitConversionSeed()
+		seeders.ProductCategorySeed()
+		seeders.ProductSeed()
+		seeders.MemberCategorySeed()
+		seeders.SupplierCategorySeed()
+		seeders.SupplierSeed()
+		os.Exit(0)
+	}
+
+	go func() {
+		crons.SchedulerJobs(configs.DB)
+	}()
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	app.Use(logger.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,PUT,DELETE",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+	}))
+	app.Use(limiter.New(limiter.Config{
+		Max:        80,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return helpers.JSONResponse(c, fiber.StatusTooManyRequests, "Terlalu banyak permintaan (Rate limit tercapai). Silakan coba lagi nanti.", nil)
+		},
+	}))
+
+	routes.AuthRoutes(app)
+	routes.ExportExcelRoutes(app)
+	routes.ExportPDFRoutes(app)
+	routes.SysBranchRoutes(app)
+	routes.AudFirstStockRoutes(app)
+	routes.MasterProductCatRoute(app)
+	routes.MasterProductRoute(app)
+	routes.SysSupplierCatRoute(app)
+	routes.MasterSupplierRoute(app)
+	routes.MasterUnitRoutes(app)
+	routes.MasterUnitConvRoutes(app)
+	routes.SysDashboardRoute(app)
+	routes.SysDailyAssetRoute(app)
+	routes.AudOpnameRoute(app)
+	routes.SysDefectaRoute(app)
+	routes.SysMemberCatRoute(app)
+	routes.SysMemberRoute(app)
+	routes.SysReportRoute(app)
+	routes.SysUserRoute(app)
+	routes.SysUserBranchRoutes(app)
+	routes.TransAnotherIncomeRoute(app)
+	routes.TransBuyReturnRoutes(app)
+	routes.TransDuplicateReceiptRoutes(app)
+	routes.TransExpenseRoutes(app)
+	routes.TransPurchaseRoutes(app)
+	routes.TransSaleRoutes(app)
+	routes.TransSaleReturnRoutes(app)
+
+	routeCount := 0
+	for _, routes := range app.Stack() {
+		routeCount += len(routes)
+	}
+
+	port, err := strconv.Atoi(serverPort)
 	if err != nil {
-		log.Println("Warning: Could not load .env file. Using default configurations or environment variables.")
+		log.Fatal("Invalid APP_PORT/SERVER_PORT: must be a number")
 	}
 
-	// 2. Load Configurations
-	dbConfig := configs.LoadDatabaseConfig()
-	serverConfig := configs.LoadServerConfig() // Asumsi ada LoadServerConfig untuk APP_PORT dll.
+	helpers.PrintFiberLikeBanner(
+		os.Getenv("APPNAME"),
+		"0.0.0.0",
+		port,
+		routeCount,
+	)
 
-	// 3. Initialize Database Connection
-	db, err := database.NewPostgresConnection(dbConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: ¥v", err)
-	}
-	defer db.Close()
-	// TODO: Mungkin perlu Migrate DB di sini jika belum otomatis
-
-	// 4. Initialize Repositories (Driven Adapters)
-	//    Ini adalah bagian dari Dependency Injection
-	//    Kita akan membuat instance dari repository yang menggunakan koneksi DB
-	//    Contoh:
-	//    productRepo := postgres.NewProductRepository(db)
-	//    userRepo := postgres.NewUserRepository(db)
-	//    ... dll
-
-	// 5. Initialize Token Service (jika terpisah dari DB, contoh: misal pakai JWT secret dari config)
-	//    tokenService := auth.NewJWTService("your_secret_key_from_env") // Adaptasi ini
-	
-	// 6. Initialize Use Cases (Core)
-	//    Use cases akan menerima instance repository sebagai argumen
-	//    Contoh:
-	//    userUC := usecases.NewUserService(userRepo)
-	//    productUC := usecases.NewProductService(productRepo)
-	//    authUC := usecases.NewAuthService(userRepo, tokenService)
-	//    ... dll
-
-	// 7. Initialize HTTP Handlers (Driving Adapters)
-	//    Handlers akan menerima instance Use Cases sebagai argumen
-	//    Contoh:
-	//    productHandler := driving_http.NewProductHandler(productUC)
-	//    userHandler := driving_http.NewUserHandler(userUC)
-	//    authHandler := driving_http.NewAuthHandler(authUC)
-	//    ... dll
-
-	// 8. Initialize Fiber Web Server
-	//    Server config diambil dari serverConfig (APP_PORT)
-	app := web.NewFiberServer(serverConfig.Port) // Asumsi ada fungsi NewFiberServer di internal/frameworks/web
-
-	// Muat Routers dan Middleware
-	// Di sini akan dipanggil fungsi setup router dari internal/adapters/driving/http/routes/
-	// Contoh:
-	// app.Use(logger.New()) // Middleware umum
-	// auth.SetupRoutes(app, authHandler) // Setup routes auth
-	// product_routes.SetupRoutes(app, productHandler) // Setup routes product
-	// ... dll
-
-	// 9. Start Server
-	log.Printf("Server starting on port %s...", serverConfig.Port)
-	if err := app.Listen(serverConfig.Port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	log.Fatal(app.Listen(":" + serverPort))
 }
-
-// TODO:
-// - Implement Dependency Injection properly (e.g., using a DI container or manual wiring in main)
-// - Fill in the actual repository implementations in internal/adapters/driven/postgres/
-// - Adjust import paths if internal/configs or other modules are located elsewhere.
-// - Implement proper error handling and logging.
-// - Add necessary migrations or seeding if needed.

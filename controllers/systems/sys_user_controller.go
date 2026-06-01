@@ -5,9 +5,9 @@ import (
 	strings "strings"
 
 	fiber "github.com/gofiber/fiber/v2"
-	configs "github.com/heru-oktafian/fiber-apotek/configs"
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	models "github.com/heru-oktafian/fiber-apotek/models"
+	configs "apotek-clean/configs"
+	helpers "apotek-clean/helpers"
+	models "apotek-clean/models"
 	bcrypt "golang.org/x/crypto/bcrypt"
 	gorm "gorm.io/gorm"
 )

@@ -4,8 +4,8 @@ import (
 	errors "errors"
 	time "time"
 
-	configs "github.com/heru-oktafian/fiber-apotek/configs"
-	models "github.com/heru-oktafian/fiber-apotek/models"
+	configs "apotek-clean/configs"
+	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
 

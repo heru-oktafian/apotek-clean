@@ -8,11 +8,11 @@ import (
 	gorm "gorm.io/gorm"
 
 	fiber "github.com/gofiber/fiber/v2"
-	configs "github.com/heru-oktafian/fiber-apotek/configs"
-	helpers "github.com/heru-oktafian/fiber-apotek/helpers"
-	models "github.com/heru-oktafian/fiber-apotek/models"
-	services "github.com/heru-oktafian/fiber-apotek/services"
-	reports "github.com/heru-oktafian/fiber-apotek/services/reports"
+	configs "apotek-clean/configs"
+	helpers "apotek-clean/helpers"
+	models "apotek-clean/models"
+	services "apotek-clean/services"
+	reports "apotek-clean/services/reports"
 )
 
 // CreateSaleTransaction controller
