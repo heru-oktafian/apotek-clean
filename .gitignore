@@ -32,6 +32,7 @@ go.work.sum
 bin/
 app.log
 nohup.out
+.trash/
 
 # Editor/IDE
 # .idea/
