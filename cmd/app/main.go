@@ -14,9 +14,9 @@ import (
 
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
-	routes "apotek-clean/routes"
 	seeders "apotek-clean/seeders"
 	crons "apotek-clean/services/crons"
+	internalroutes "apotek-clean/internal/adapters/driving/http/routes"
 )
 
 func main() {
@@ -81,33 +81,7 @@ func main() {
 		},
 	}))
 
-	routes.AuthRoutes(app)
-	routes.ExportExcelRoutes(app)
-	routes.ExportPDFRoutes(app)
-	routes.SysBranchRoutes(app)
-	routes.AudFirstStockRoutes(app)
-	routes.MasterProductCatRoute(app)
-	routes.MasterProductRoute(app)
-	routes.SysSupplierCatRoute(app)
-	routes.MasterSupplierRoute(app)
-	routes.MasterUnitRoutes(app)
-	routes.MasterUnitConvRoutes(app)
-	routes.SysDashboardRoute(app)
-	routes.SysDailyAssetRoute(app)
-	routes.AudOpnameRoute(app)
-	routes.SysDefectaRoute(app)
-	routes.SysMemberCatRoute(app)
-	routes.SysMemberRoute(app)
-	routes.SysReportRoute(app)
-	routes.SysUserRoute(app)
-	routes.SysUserBranchRoutes(app)
-	routes.TransAnotherIncomeRoute(app)
-	routes.TransBuyReturnRoutes(app)
-	routes.TransDuplicateReceiptRoutes(app)
-	routes.TransExpenseRoutes(app)
-	routes.TransPurchaseRoutes(app)
-	routes.TransSaleRoutes(app)
-	routes.TransSaleReturnRoutes(app)
+	internalroutes.RegisterCoreRoutes(app)
 
 	routeCount := 0
 	for _, routes := range app.Stack() {
