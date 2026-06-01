@@ -1,159 +1,187 @@
-# Cores 🚀
+# Apotek-Clean
 
-[![Golang](https://img.shields.io/badge/Golang-1.25%2B-blue.svg)](https://golang.org/)
-[![Fiber v2](https://img.shields.io/badge/Fiber-v2.52.5-00ADEE?logo=gofiber&logoColor=white)](https://docs.gofiber.io)
-[![Postgres](https://img.shields.io/badge/PostgreSQL-17.4-yellow)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/Redis-7.4%2B-red)](https://www.redis.io)
-[![JWT](https://img.shields.io/badge/TokenJWT-v5.3%2B-purple)](https://www.jwt.io/)
----
+Refactor repository **fiber-apotek** ke struktur **Clean Architecture** agar maintenance, testing, dan pengembangan fitur berikutnya lebih rapi.
 
-<div align="center">
-    Foldering structure dasar untuk membuat RESTful API performa tinggi, dioptimalkan dengan caching Redis dan autentikasi JWT.
-    <br />
-    <br />
-    <a href="#">Lihat Dokumentasi Repo</a>
-    ·
-    <a href="#">Laporkan Bug</a>
-    ·
-    <a href="#">Minta Fitur</a>
-</div>
+## Tujuan
 
----
+- Memisahkan domain, use case, adapter, dan framework
+- Menjaga perilaku API tetap sama seperti versi sebelumnya
+- Memudahkan pengujian, penggantian infrastruktur, dan scaling project
 
-## 🧐 Tentang Proyek
+## Struktur Proyek
 
-Dalam repositori ini kita menerapkan `Golang` sebagai platform dasar bahasa pemrograman yang digunakan dalam pembuatan `API`.
-Di dalam repositori ini juga kami terapkan framework `Fiber versi 2` yang kami kombinasikan dengan dependensi `GORM` dan `JWT` untuk mempermudah dalam pengerjaan di ranah sekuritas maupun pengelolaan databasenya.
+```text
+apotek-clean/
+├── cmd/
+│   └── app/
+│       └── main.go
+├── configs/
+│   ├── database_config.go
+│   └── timezone_config.go
+├── internal/
+│   ├── core/
+│   │   ├── entities/
+│   │   ├── ports/
+│   │   │   ├── driven/
+│   │   │   └── driving/
+│   │   └── usecases/
+│   ├── adapters/
+│   │   ├── driven/
+│   │   │   └── postgres/
+│   │   └── driving/
+│   │       └── http/
+│   │           ├── handlers/
+│   │           └── routes/
+│   ├── frameworks/
+│   │   ├── auth/
+│   │   ├── database/
+│   │   ├── export/
+│   │   │   ├── excel/
+│   │   │   └── pdf/
+│   │   ├── scheduler/
+│   │   └── web/
+│   └── utils/
+├── controllers/
+├── helpers/
+├── middlewares/
+├── models/
+├── routes/
+├── schedulers/
+├── seeders/
+├── services/
+├── .env.example
+├── go.mod
+└── README.md
+```
 
-### 🛠️ Dibangun Dengan (The Tech Stack)
+## Keterangan Layer
 
-Proyek ini dikembangkan menggunakan teknologi-teknologi utama berikut:
+### 1. Core
+Berisi logika inti aplikasi.
 
-* [![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)](https://go.dev/) 
-* [![Fiber](https://img.shields.io/badge/Fiber-v2-%2300ADEE.svg?style=for-the-badge&logo=gofiber&logoColor=white)](https://docs.gofiber.io)
-* [![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-* [![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
-* [![GORM](https://img.shields.io/badge/GORM-v1.25.11-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)](https://gorm.io/)
-* [![JWT](https://img.shields.io/badge/JWT-black.svg?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)](https://jwt.io/)
+- `entities/` untuk model domain utama
+- `usecases/` untuk aturan bisnis
+- `ports/` untuk kontrak interface antara core dan layer luar
 
----
+### 2. Adapters
+Berisi penghubung antara core dan dunia luar.
 
-## 🏁 Memulai (Getting Started)
+- `driving/http/handlers/` untuk handler HTTP
+- `driving/http/routes/` untuk route registration
+- `driven/postgres/` untuk implementasi repository PostgreSQL
 
-Bagian ini memandu Anda untuk menyiapkan dan menjalankan proyek di lingkungan lokal Anda untuk tujuan pengembangan dan pengujian.
+### 3. Frameworks
+Berisi detail teknis/infrastruktur.
 
-### ⚙️ Prerequisites (Prasyarat)
+- `web/` untuk setup Fiber
+- `database/` untuk koneksi database
+- `auth/` untuk JWT atau auth helper
+- `scheduler/` untuk cron/scheduler
+- `export/` untuk export Excel/PDF
 
-Pastikan Anda telah menginstal yang berikut ini:
+## Konfigurasi Environment
 
-* **Golang** (Versi 1.25 atau lebih tinggi)
-* **PostgreSQL** (Database)
-* **Redis** (Server Caching/Session)
-* **Git**
-* **Fiber v2** (Framework Web)
+Gunakan file `.env` di root project.
 
-### 📦 Installation (Instalasi)
+### Contoh `.env`
 
-1.  **Clone** repositori ini:
-    ```bash
-     git clone git@github.com:heru-oktafian/fiber-apotek.git
-     cd fiber-apotek
-     go mod init "nama/alamat git project yang ingin dibuat"
-    ```
+```env
+APP_PORT=9001
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=apotek_clean
+DB_SSLMODE=disable
+JWT_SECRET=change-me
+```
 
-2.  **Siapkan Database:**
-    * Buat database PostgreSQL baru.
-    * Konfigurasi koneksi database Anda di file `.env` dengan menjadikan acuan `.example_env`.
+Jika belum ada, copy dari contoh:
 
-3.  **Siapkan Environment (Lingkungan):**
-    * Duplikasi file `.example_env` dan ganti namanya menjadi `.env`.
-    * Isi variabel-variabel yang diperlukan (`DB_HOST`, `DB_USER`, `REDIS_HOST`, `JWT_SECRET`, dll.).
+```bash
+cp .env.example .env
+```
 
-4.  **Jalankan Migrasi Database (Jika Menggunakan GORM Migrations):**
-    ```bash
-    go run [path/ke/file/migrasi/utama].go
-    # Secara default migrasi sudah terinclude dalam file main.go
-    ```
-    *[Sesuaikan perintah migrasi Anda]*
+## Menjalankan Project
 
-5.  **Jalankan Proyek:**
-    ```bash
-    go run main.go
-    # Atau gunakan: go build && ./[nama executable]
-    ```
+### Install dependency
 
-Proyek akan berjalan di `http://localhost:9002`.
+```bash
+go mod tidy
+```
 
----
+### Jalankan aplikasi
 
-## 🤸 Penggunaan API (Usage)
+```bash
+go run ./cmd/app/main.go
+```
 
-API ini dirancang untuk mengelola authentikasi, master, transaksi dll.
+### Build binary
 
-### Contoh Autentikasi
+```bash
+go build -o bin/apotek ./cmd/app
+./bin/apotek
+```
 
-Semua *endpoint* yang aman memerlukan token **Bearer JWT** di *header*.
+Server akan berjalan sesuai `APP_PORT` di `.env`, saat ini disiapkan untuk **9001**.
 
-| Header | Nilai |
-| :--- | :--- |
-| `Authorization` | `Bearer <your_jwt_token>` |
+## Database
 
-### Endpoint Utama
+Project menggunakan PostgreSQL. Pastikan database yang sesuai dengan `.env` sudah tersedia.
 
-| Kategori | Deskripsi |
-| :--- | :--- |
-| `/api/auth` | Pendaftaran & *Login* Pengguna. |
+Contoh quick check:
 
-**Lihat dokumentasi lengkap di [dok.heruoktafian.com](https://dok.heruoktafian.com)**
+```bash
+psql -h 127.0.0.1 -U postgres -d apotek_clean
+```
 
----
+## Testing
 
-## 🛠️ Tahapan Pembuatan
+### Unit test
 
-Dalam repository ini, kami juga sertakan proses serta tahapan dalam pembuatannya, serta aspek yang terdapat di dalamnya apa saja.
+```bash
+go test ./...
+```
 
-### Endpoint Utama
+### API test
 
-| Kategori | Deskripsi |
-| :--- | :--- |
-| `/api/auth` | Pendaftaran & *Login* Pengguna. |
+Gunakan Postman collection yang sudah disiapkan untuk memastikan seluruh endpoint tetap kompatibel dengan versi sebelumnya.
 
-**Lihat dokumentasi lengkap di [dok.heruoktafian.com](https://dok.heruoktafian.com)**
+## Catatan Penting
 
----
+- Struktur lama seperti `controllers/`, `services/`, `routes/`, dan `models/` masih ada selama masa transisi refactor
+- Target akhirnya adalah seluruh alur utama berpindah ke `internal/`
+- File `cmd/app/main.go` adalah entry point utama aplikasi baru
 
-## 🛣️ Roadmap (Rencana Pengembangan)
+## Roadmap Refactor
 
-* Penambahan fitur `Backup & Restore DB`.
-* Penambahan fitur `Billing usages`.
-* Optimasi pencarian produk dengan sistem caching yang lebih baik.
+- [x] Menyiapkan struktur Clean Architecture
+- [x] Menyiapkan entities awal
+- [x] Menyiapkan use case, ports, adapters, dan frameworks dasar
+- [x] Menambahkan dukungan `.env`
+- [ ] Merapikan dependency injection penuh di `cmd/app/main.go`
+- [ ] Menyelesaikan seluruh implementasi repository dan handler sampai build benar-benar hijau
+- [ ] Verifikasi endpoint via Postman collection
+- [ ] Finalisasi dokumentasi deployment
 
----
+## Deploy Sederhana
 
-## 🤝 Kontribusi (Contributing)
+Contoh Dockerfile minimal:
 
-Kontribusi adalah hal yang membuat komunitas *open source* menjadi tempat yang luar biasa untuk belajar, menginspirasi, dan berkreasi. Setiap kontribusi yang Anda berikan sangat **dihargai**.
+```dockerfile
+FROM golang:1.24-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN go mod tidy && go build -o /apotek ./cmd/app
 
-Jika Anda memiliki saran yang akan membuat ini lebih baik, silakan *fork* repo dan buat *Pull Request*. Anda juga dapat membuka *issue* dengan tag "enhancement".
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /apotek /apotek
+COPY .env .
+EXPOSE 9001
+ENTRYPOINT ["/apotek"]
+```
 
-1.  *Fork* Proyek.
-2.  Buat *Branch* Fitur Anda (`git checkout -b feature/AmazingFeature`).
-3.  *Commit* Perubahan Anda (`git commit -m 'Add some AmazingFeature'`).
-4.  *Push* ke *Branch* (`git push origin feature/AmazingFeature`).
-5.  Buka *Pull Request*.
+## Lisensi
 
----
-
-## 📄 Lisensi (License)
-
-Karya ini (termasuk semua kode dan konten di repositori ini) dilindungi oleh hak cipta. Penggunaan, penyalinan, atau modifikasi dalam bentuk apa pun dilarang tanpa izin tertulis dari saya.
-
-Untuk meminta izin, silakan hubungi saya di info@heruoktafian.com.
-
----
-
-## ✉️ Kontak (Contact)
-
-Heru Oktafian, ST., CTT - [@heru-oktafian](https://x.com/HeruOktafianST) - [info@heruoktafian.com](mailto:info@heruoktafian.com)
-
-Tautan Proyek: [https://github.com/heru-oktafian/fiber-apotek](https://github.com/heru-oktafian/fiber-apotek)
+Mengikuti lisensi dari project sumber jika tidak ditentukan lain.
