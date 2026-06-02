@@ -29,6 +29,7 @@ func RegisterTransactionRoutes(app *fiber.App) {
 	app.Get("/api/sales-details", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.GetAllSalesDetail)
 
 	app.Get("/api/another-incomes", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.GetAllAnotherIncomes)
+	app.Post("/api/another-incomes", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "superadmin"), handlers.CreateAnotherIncome)
 	app.Post("/api/another-incomes/", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "superadmin"), handlers.CreateAnotherIncome)
 	app.Put("/api/another-incomes/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "superadmin"), handlers.UpdateAnotherIncome)
 	app.Delete("/api/another-incomes/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "superadmin"), handlers.DeleteAnotherIncome)

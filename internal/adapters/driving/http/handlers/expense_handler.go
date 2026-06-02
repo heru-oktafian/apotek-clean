@@ -88,18 +88,24 @@ func UpdateExpense(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
 	}
 
-	// Parse tanggal dari string ke time.Time
-	layout := "2006-01-02"
-	parsedDate, err := time.Parse(layout, input.ExpenseDate)
-	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+	if input.ExpenseDate != "" {
+		layout := "2006-01-02"
+		parsedDate, err := time.Parse(layout, input.ExpenseDate)
+		if err != nil {
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+		}
+		expense.ExpenseDate = parsedDate
 	}
 
-	// Update field dasar
-	expense.ExpenseDate = parsedDate
-	expense.Description = input.Description
-	expense.TotalExpense = input.TotalExpense
-	expense.Payment = models.PaymentStatus(input.Payment)
+	if input.Description != "" {
+		expense.Description = input.Description
+	}
+	if input.TotalExpense != 0 {
+		expense.TotalExpense = input.TotalExpense
+	}
+	if input.Payment != "" {
+		expense.Payment = models.PaymentStatus(input.Payment)
+	}
 	expense.UpdatedAt = nowWIB
 
 	// Simpan update

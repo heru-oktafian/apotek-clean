@@ -90,18 +90,24 @@ func UpdateAnotherIncome(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
 	}
 
-	// Parse tanggal dari string ke time.Time
-	layout := "2006-01-02"
-	parsedDate, err := time.Parse(layout, input.IncomeDate)
-	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+	if input.IncomeDate != "" {
+		layout := "2006-01-02"
+		parsedDate, err := time.Parse(layout, input.IncomeDate)
+		if err != nil {
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+		}
+		another_income.IncomeDate = parsedDate
 	}
 
-	// Update field dasar
-	another_income.IncomeDate = parsedDate
-	another_income.Description = input.Description
-	another_income.TotalIncome = input.TotalIncome
-	another_income.Payment = models.PaymentStatus(input.Payment)
+	if input.Description != "" {
+		another_income.Description = input.Description
+	}
+	if input.TotalIncome != 0 {
+		another_income.TotalIncome = input.TotalIncome
+	}
+	if input.Payment != "" {
+		another_income.Payment = models.PaymentStatus(input.Payment)
+	}
 	another_income.UpdatedAt = nowWIB
 
 	// Simpan update
