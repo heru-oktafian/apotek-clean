@@ -34,6 +34,8 @@ func generateJWT(user models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": user.ID,
 		"exp": nowWIB.Add(5 * time.Minute).Unix(),
+		"iat": nowWIB.Unix(),
+		"jti": fmt.Sprintf("%s-%d", user.ID, nowWIB.UnixNano()),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	secretKey := []byte(os.Getenv("JWT_SECRET"))

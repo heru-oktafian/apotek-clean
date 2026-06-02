@@ -50,6 +50,9 @@ func TokenValidation(c *fiber.Ctx, key string) error {
 	// Verifikasi token menggunakan kunci rahasia
 	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		secretKey := []byte(os.Getenv("JWT_SECRET"))
+		if len(secretKey) == 0 {
+			secretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+		}
 		return secretKey, nil
 	})
 
