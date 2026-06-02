@@ -441,7 +441,7 @@ func GetFirstStockWithItems(c *fiber.Ctx) error {
 	// Format tanggal pembelian ke dd-mm-yyyy
 	formattedDate := first_stock.FirstStockDate.Format("02-01-2006")
 
-	return JSONFirstStockWithItemsResponse(c, http.StatusOK, "FirstStock retrieved successfully", first_stockID, first_stock.Description, formattedDate, first_stock.TotalFirstStock, formattedDate, items)
+	return JSONFirstStockWithItemsResponse(c, http.StatusOK, "FirstStock retrieved successfully", first_stockID, first_stock.Description, formattedDate, first_stock.TotalFirstStock, string(first_stock.Payment), items)
 }
 
 // CreateFirstStockTransaction controller
