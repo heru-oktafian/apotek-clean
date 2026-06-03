@@ -8,12 +8,12 @@ import (
 	strings "strings"
 	time "time"
 
-	fiber "github.com/gofiber/fiber/v2"
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	services "apotek-clean/services"
 	reports "apotek-clean/services/reports"
+	fiber "github.com/gofiber/fiber/v2"
 	gorm "gorm.io/gorm"
 )
 
@@ -86,12 +86,11 @@ func UpdatePurchase(c *fiber.Ctx) error {
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
-	editable, err := services.IsEditable(db, "purchases", purchase.ID, 1*time.Hour)
-	if err != nil {
+	if err := services.EnsurePurchaseEditable(db, purchase.ID); err != nil {
+		if errors.Is(err, services.ErrDataExpiredToEdit) {
+			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
+		}
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
-	}
-	if !editable {
-		return helpers.JSONResponse(c, fiber.StatusForbidden, "Data tidak bisa diedit karena sudah tersimpan lebih dari 1 jam", nil)
 	}
 
 	// Gunakan struct input
@@ -128,15 +127,7 @@ func UpdatePurchase(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase items", err)
 	}
 
-	if len(items) == 0 {
-		purchase.TotalPurchase = 0
-	} else {
-		total := 0
-		for _, item := range items {
-			total += item.SubTotal
-		}
-		purchase.TotalPurchase = total
-	}
+	purchase.TotalPurchase = services.SumPurchaseItems(items)
 
 	// Simpan perubahan
 	if err := db.Save(&purchase).Error; err != nil {
@@ -165,12 +156,11 @@ func DeletePurchase(c *fiber.Ctx) error {
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
-	editable, err := services.IsEditable(db, "purchases", purchase.ID, 1*time.Hour)
-	if err != nil {
+	if err := services.EnsurePurchaseEditable(db, purchase.ID); err != nil {
+		if errors.Is(err, services.ErrDataExpiredToEdit) {
+			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
+		}
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
-	}
-	if !editable {
-		return helpers.JSONResponse(c, fiber.StatusForbidden, "Data tidak bisa diedit karena sudah tersimpan lebih dari 1 jam", nil)
 	}
 
 	// Ambil item-item dan rollback stok
@@ -214,12 +204,11 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
-	editable, errr := services.IsEditable(db, "purchases", item.PurchaseId, 1*time.Hour)
-	if errr != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", errr)
-	}
-	if !editable {
-		return helpers.JSONResponse(c, fiber.StatusForbidden, "Data tidak bisa diedit karena sudah tersimpan lebih dari 1 jam", nil)
+	if err := services.EnsurePurchaseEditable(db, item.PurchaseId); err != nil {
+		if errors.Is(err, services.ErrDataExpiredToEdit) {
+			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
+		}
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
 	}
 
 	// Cek apakah item dengan purchase_id dan product_id sudah ada
@@ -234,7 +223,6 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update existing item", err)
 		}
 
-		// Supporting operations synchronously
 		if err := services.AddProductStock(db, item.ProductId, item.Qty); err != nil {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to add product stock", err)
 		}
@@ -264,7 +252,6 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create item", err)
 	}
 
-	// Supporting operations synchronously
 	if err := services.AddProductStock(db, item.ProductId, item.Qty); err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to add product stock", err)
 	}
@@ -291,13 +278,11 @@ func UpdatePurchaseItem(c *fiber.Ctx) error {
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
-	editable, errr := services.IsEditable(db, "purchases", existingItem.PurchaseId, 1*time.Hour)
-	if errr != nil {
-		// return c.Status(500).JSON(fiber.Map{"error": "Failed to retrieve purchase timestamp"})
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", errr)
-	}
-	if !editable {
-		return helpers.JSONResponse(c, fiber.StatusForbidden, "Data tidak bisa diedit karena sudah tersimpan lebih dari 1 jam", nil)
+	if err := services.EnsurePurchaseEditable(db, existingItem.PurchaseId); err != nil {
+		if errors.Is(err, services.ErrDataExpiredToEdit) {
+			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
+		}
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
 	}
 
 	var updatedItem models.PurchaseItems
@@ -349,12 +334,11 @@ func DeletePurchaseItem(c *fiber.Ctx) error {
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
-	editable, errr := services.IsEditable(db, "purchases", item.PurchaseId, 1*time.Hour)
-	if errr != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", errr)
-	}
-	if !editable {
-		return helpers.JSONResponse(c, fiber.StatusForbidden, "Data tidak bisa diedit karena sudah tersimpan lebih dari 1 jam", nil)
+	if err := services.EnsurePurchaseEditable(db, item.PurchaseId); err != nil {
+		if errors.Is(err, services.ErrDataExpiredToEdit) {
+			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
+		}
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
 	}
 
 	// Subtract stok
