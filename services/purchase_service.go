@@ -28,3 +28,10 @@ func SumPurchaseItems(items []models.PurchaseItems) int {
 	}
 	return total
 }
+
+func ParsePurchaseDate(inputDate string, fallback time.Time) (time.Time, error) {
+	if inputDate == "" {
+		return fallback, nil
+	}
+	return time.Parse("2006-01-02", inputDate)
+}

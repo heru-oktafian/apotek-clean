@@ -552,7 +552,6 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 	req.Purchase.UserID = userID
 	req.Purchase.BranchID = branchID
 
-	// --- VALIDASI INPUT ---
 	err = helpers.ValidateStruct(req.Purchase)
 	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validation failed for purchase input", err)
@@ -564,16 +563,10 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validation failed for one or more purchase items", err)
 		}
 	}
-	// --- AKHIR VALIDASI INPUT ---
 
-	var purchaseDate time.Time
-	if req.Purchase.PurchaseDate == "" {
-		purchaseDate = nowWIB
-	} else {
-		purchaseDate, err = time.Parse("2006-01-02", req.Purchase.PurchaseDate)
-		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid purchase_date format. Please use `YYYY-MM-DD`.", err)
-		}
+	purchaseDate, err := services.ParsePurchaseDate(req.Purchase.PurchaseDate, nowWIB)
+	if err != nil {
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid purchase_date format. Please use `YYYY-MM-DD`.", err)
 	}
 
 	purchase := models.Purchases{
