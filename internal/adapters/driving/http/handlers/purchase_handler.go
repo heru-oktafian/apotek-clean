@@ -17,6 +17,22 @@ import (
 	gorm "gorm.io/gorm"
 )
 
+func syncPurchaseItemPostSave(db *gorm.DB, purchaseID, productID string, qty, price int) error {
+	if err := services.AddProductStock(db, productID, qty); err != nil {
+		return err
+	}
+
+	if err := services.UpdateProductPriceIfHigher(db, productID, price); err != nil {
+		return err
+	}
+
+	return reports.RecalculateTotalPurchase(db, purchaseID)
+}
+
+func recalculatePurchaseAfterItemChange(db *gorm.DB, purchaseID string) error {
+	return reports.RecalculateTotalPurchase(db, purchaseID)
+}
+
 // CreatePurchase Function is using to create new purchase
 func CreatePurchase(c *fiber.Ctx) error {
 
@@ -223,16 +239,8 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update existing item", err)
 		}
 
-		if err := services.AddProductStock(db, item.ProductId, item.Qty); err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to add product stock", err)
-		}
-
-		if err := services.UpdateProductPriceIfHigher(db, item.ProductId, item.Price); err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update product price", err)
-		}
-
-		if err := reports.RecalculateTotalPurchase(db, item.PurchaseId); err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to recalculate total purchase", err)
+		if err := syncPurchaseItemPostSave(db, item.PurchaseId, item.ProductId, item.Qty, item.Price); err != nil {
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync purchase item effects", err)
 		}
 
 		return helpers.JSONResponse(c, fiber.StatusOK, "Item updated successfully", existing)
@@ -252,16 +260,8 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create item", err)
 	}
 
-	if err := services.AddProductStock(db, item.ProductId, item.Qty); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to add product stock", err)
-	}
-
-	if err := services.UpdateProductPriceIfHigher(db, item.ProductId, item.Price); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update product price", err)
-	}
-
-	if err := reports.RecalculateTotalPurchase(db, item.PurchaseId); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to recalculate total purchase", err)
+	if err := syncPurchaseItemPostSave(db, item.PurchaseId, item.ProductId, item.Qty, item.Price); err != nil {
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync purchase item effects", err)
 	}
 
 	return helpers.JSONResponse(c, fiber.StatusOK, "Item added successfully", item)
@@ -311,12 +311,11 @@ func UpdatePurchaseItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update item", err)
 	}
 
-	// Supporting operations synchronously
 	if err := services.UpdateProductPriceIfHigher(db, updatedItem.ProductId, updatedItem.Price); err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update product price", err)
 	}
 
-	if err := reports.RecalculateTotalPurchase(db, existingItem.PurchaseId); err != nil {
+	if err := recalculatePurchaseAfterItemChange(db, existingItem.PurchaseId); err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to recalculate total purchase", err)
 	}
 
@@ -351,8 +350,7 @@ func DeletePurchaseItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete item", err)
 	}
 
-	// Supporting operations synchronously
-	if err := reports.RecalculateTotalPurchase(db, item.PurchaseId); err != nil {
+	if err := recalculatePurchaseAfterItemChange(db, item.PurchaseId); err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to recalculate total purchase", err)
 	}
 
