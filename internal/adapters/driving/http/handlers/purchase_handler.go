@@ -670,13 +670,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 		// --- Akhir persiapan data respons ---
 
 		// --- Tambah stok dan cek/update expired_date ---
-		updates := map[string]interface{}{
-			"stock": product.Stock + actualQtyToAdd,
-		}
-
-		if parsedExpiredDate.Before(product.ExpiredDate) {
-			updates["expired_date"] = parsedExpiredDate
-		}
+		updates := services.BuildPurchasedProductUpdates(product, actualQtyToAdd, parsedExpiredDate)
 
 		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Updates(updates).Error
 		if err != nil {

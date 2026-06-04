@@ -90,3 +90,15 @@ func LookupPurchaseItemDependencies(db *gorm.DB, branchID, productID, unitID str
 
 	return result, nil
 }
+
+func BuildPurchasedProductUpdates(product models.Product, actualQtyToAdd int, parsedExpiredDate time.Time) map[string]interface{} {
+	updates := map[string]interface{}{
+		"stock": product.Stock + actualQtyToAdd,
+	}
+
+	if parsedExpiredDate.Before(product.ExpiredDate) {
+		updates["expired_date"] = parsedExpiredDate
+	}
+
+	return updates
+}
