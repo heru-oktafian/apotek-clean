@@ -742,15 +742,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 	}
 
 	// --- Akhir: Mengkonstruksi Objek Respon ---
-	response := models.PurchaseResponse{
-		ID:            purchase.ID,
-		SupplierID:    purchase.SupplierId,
-		SupplierName:  supplier.Name,                          // Ambil nama supplier yang sudah diambil
-		PurchaseDate:  purchaseDate.Format("02 January 2006"), // Format tanggal pembelian
-		TotalPurchase: purchase.TotalPurchase,
-		Payment:       purchase.Payment,
-		Items:         purchaseItemsForResponse, // Sertakan slice item yang sudah disiapkan
-	}
+	response := services.BuildPurchaseTransactionResponse(purchase, supplier.Name, purchaseDate, purchaseItemsForResponse)
 	// --- Akhir Mengkonstruksi Objek Respon ---
 
 	return helpers.JSONResponse(c, fiber.StatusOK, "Purchase transaction created successfully", response)

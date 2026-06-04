@@ -102,3 +102,15 @@ func BuildPurchasedProductUpdates(product models.Product, actualQtyToAdd int, pa
 
 	return updates
 }
+
+func BuildPurchaseTransactionResponse(purchase models.Purchases, supplierName string, purchaseDate time.Time, items []models.PurchaseItemResponse) models.PurchaseResponse {
+	return models.PurchaseResponse{
+		ID:            purchase.ID,
+		SupplierID:    purchase.SupplierId,
+		SupplierName:  supplierName,
+		PurchaseDate:  purchaseDate.Format("02 January 2006"),
+		TotalPurchase: purchase.TotalPurchase,
+		Payment:       purchase.Payment,
+		Items:         items,
+	}
+}
