@@ -114,3 +114,9 @@ func BuildPurchaseTransactionResponse(purchase models.Purchases, supplierName st
 		Items:         items,
 	}
 }
+
+func LookupPurchaseSupplier(db *gorm.DB, supplierID string) (models.Supplier, error) {
+	var supplier models.Supplier
+	err := db.Where("id = ?", supplierID).First(&supplier).Error
+	return supplier, err
+}

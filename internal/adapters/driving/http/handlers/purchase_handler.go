@@ -598,8 +598,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 	var purchaseItemsForResponse []models.PurchaseItemResponse // <--- Slice baru untuk data respons
 
 	// Mendapatkan nama supplier (di luar loop item untuk efisiensi)
-	var supplier models.Supplier
-	err = tx.Where("id = ?", req.Purchase.SupplierId).First(&supplier).Error
+	supplier, err := services.LookupPurchaseSupplier(tx, req.Purchase.SupplierId)
 	if err != nil {
 		tx.Rollback()
 		if err == gorm.ErrRecordNotFound {
