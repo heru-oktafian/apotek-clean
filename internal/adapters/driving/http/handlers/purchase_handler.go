@@ -617,49 +617,23 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Invalid expired_date format for product %s. Please use `YYYY-MM-DD`.", req.PurchaseItems[i].ProductId), err)
 		}
 
-		var product models.Product
-		err = tx.Where("id = ?", req.PurchaseItems[i].ProductId).First(&product).Error
+		lookup, err := services.LookupPurchaseItemDependencies(tx, purchase.BranchID, req.PurchaseItems[i].ProductId, req.PurchaseItems[i].UnitId)
 		if err != nil {
 			tx.Rollback()
 			if err == gorm.ErrRecordNotFound {
+				if tx.Where("id = ?", req.PurchaseItems[i].ProductId).First(&models.Product{}).Error == nil {
+					return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Unit with ID %s not found", req.PurchaseItems[i].UnitId), err)
+				}
 				return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Product with ID %s not found", req.PurchaseItems[i].ProductId), err)
 			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve product details", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase item dependencies", err)
 		}
 
-		// Mendapatkan nama unit (sesuai unit_id yang diinput)
-		var unit models.Unit
-		err = tx.Where("id = ?", req.PurchaseItems[i].UnitId).First(&unit).Error
-		if err != nil {
-			tx.Rollback()
-			if err == gorm.ErrRecordNotFound {
-				return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Unit with ID %s not found", req.PurchaseItems[i].UnitId), err)
-			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve unit details", err)
-		}
+		product := lookup.Product
+		unit := lookup.Unit
 
 		// --- Logika Konversi Satuan ---
-		var conversionValue int = 1
-		if req.PurchaseItems[i].UnitId != product.UnitId {
-			var unitConversion models.UnitConversion
-			err = tx.Where("product_id = ? AND init_id = ? AND final_id = ? AND branch_id = ?",
-				req.PurchaseItems[i].ProductId,
-				req.PurchaseItems[i].UnitId,
-				product.UnitId,
-				purchase.BranchID,
-			).First(&unitConversion).Error
-
-			if err != nil {
-				if err == gorm.ErrRecordNotFound {
-					conversionValue = 1
-				} else {
-					tx.Rollback()
-					return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve unit conversion details", err)
-				}
-			} else {
-				conversionValue = unitConversion.ValueConv
-			}
-		}
+		conversionValue := lookup.ConversionValue
 		preparedItem := services.PreparePurchaseItemValues(req.PurchaseItems[i].Qty, req.PurchaseItems[i].Price, conversionValue)
 		actualQtyToAdd := preparedItem.ActualQtyToAdd
 		// --- Akhir Logika Konversi Satuan ---

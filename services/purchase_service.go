@@ -54,3 +54,39 @@ func PreparePurchaseItemValues(qty, price, conversionValue int) PreparedPurchase
 		ItemSubTotal:    (price * conversionValue) * qty,
 	}
 }
+
+type PurchaseItemLookupResult struct {
+	Product         models.Product
+	Unit            models.Unit
+	ConversionValue int
+}
+
+func LookupPurchaseItemDependencies(db *gorm.DB, branchID, productID, unitID string) (PurchaseItemLookupResult, error) {
+	var result PurchaseItemLookupResult
+
+	if err := db.Where("id = ?", productID).First(&result.Product).Error; err != nil {
+		return result, err
+	}
+
+	if err := db.Where("id = ?", unitID).First(&result.Unit).Error; err != nil {
+		return result, err
+	}
+
+	result.ConversionValue = 1
+	if unitID != result.Product.UnitId {
+		var unitConversion models.UnitConversion
+		err := db.Where("product_id = ? AND init_id = ? AND final_id = ? AND branch_id = ?",
+			productID,
+			unitID,
+			result.Product.UnitId,
+			branchID,
+		).First(&unitConversion).Error
+		if err == nil {
+			result.ConversionValue = unitConversion.ValueConv
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return result, err
+		}
+	}
+
+	return result, nil
+}
