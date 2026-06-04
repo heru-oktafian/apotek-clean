@@ -35,3 +35,22 @@ func ParsePurchaseDate(inputDate string, fallback time.Time) (time.Time, error) 
 	}
 	return time.Parse("2006-01-02", inputDate)
 }
+
+type PreparedPurchaseItem struct {
+	ConversionValue int
+	ActualQtyToAdd  int
+	ItemPrice       int
+	ItemSubTotal    int
+}
+
+func PreparePurchaseItemValues(qty, price, conversionValue int) PreparedPurchaseItem {
+	if conversionValue <= 0 {
+		conversionValue = 1
+	}
+	return PreparedPurchaseItem{
+		ConversionValue: conversionValue,
+		ActualQtyToAdd:  qty * conversionValue,
+		ItemPrice:       price * conversionValue,
+		ItemSubTotal:    (price * conversionValue) * qty,
+	}
+}

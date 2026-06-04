@@ -660,12 +660,13 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 				conversionValue = unitConversion.ValueConv
 			}
 		}
-		actualQtyToAdd := req.PurchaseItems[i].Qty * conversionValue
+		preparedItem := services.PreparePurchaseItemValues(req.PurchaseItems[i].Qty, req.PurchaseItems[i].Price, conversionValue)
+		actualQtyToAdd := preparedItem.ActualQtyToAdd
 		// --- Akhir Logika Konversi Satuan ---
 
 		// --- Perhitungan Price dan SubTotal Otomatis ---
-		itemPrice := req.PurchaseItems[i].Price * conversionValue
-		itemSubTotal := itemPrice * req.PurchaseItems[i].Qty
+		itemPrice := preparedItem.ItemPrice
+		itemSubTotal := preparedItem.ItemSubTotal
 
 		purchaseItemDB := models.PurchaseItems{
 			ID:          helpers.GenerateID("PIT"),
