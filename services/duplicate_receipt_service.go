@@ -70,3 +70,23 @@ func PrepareDuplicateReceiptItem(item models.DuplicateReceiptItems, lookup Dupli
 		Totals:       updatedTotals,
 	}
 }
+
+func SumDuplicateReceiptItemTotals(items []models.DuplicateReceiptItems) PreparedDuplicateReceiptTotals {
+	totals := PreparedDuplicateReceiptTotals{}
+	for _, item := range items {
+		totals.Total += item.SubTotal
+		totals.Profit += item.SubTotal - item.Price*item.Qty
+	}
+	return totals
+}
+
+func ResolveDuplicateReceiptMemberID(db *gorm.DB, inputMemberID, defaultMemberID string) string {
+	if inputMemberID == "" {
+		return ""
+	}
+	var member models.Member
+	if err := db.Where("id = ?", inputMemberID).First(&member).Error; err != nil {
+		return defaultMemberID
+	}
+	return defaultMemberID
+}

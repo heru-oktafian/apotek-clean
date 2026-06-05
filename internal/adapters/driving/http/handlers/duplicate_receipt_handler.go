@@ -324,15 +324,8 @@ func UpdateDuplicateReceipt(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
 	}
 
-	if input.MemberId != "" {
-		var member models.Member
-		if err := db.Where("id = ?", input.MemberId).First(&member).Error; err != nil {
-			// Jika ID tidak valid, fallback ke default
-			memberId, _ := services.GetClaimsToken(c, "default_member")
-			duplicate_receipt.MemberId = memberId
-		} else {
-			duplicate_receipt.MemberId = defaultMember
-		}
+	if resolvedMemberID := services.ResolveDuplicateReceiptMemberID(db, input.MemberId, defaultMember); resolvedMemberID != "" {
+		duplicate_receipt.MemberId = resolvedMemberID
 	}
 	// Jika kosong → tidak diubah, tetap pakai MemberID yang sudah ada
 
@@ -347,15 +340,7 @@ func UpdateDuplicateReceipt(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to fetch sale items", err)
 	}
 
-	total := 0
-	for _, item := range items {
-		total += item.SubTotal
-	}
-
-	profit := 0
-	for _, item := range items {
-		profit += item.SubTotal - item.Price*item.Qty
-	}
+	totals := services.SumDuplicateReceiptItemTotals(items)
 
 	if err := db.Save(&duplicate_receipt).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update Duplicate receipt", err)
@@ -366,7 +351,7 @@ func UpdateDuplicateReceipt(c *fiber.Ctx) error {
 	}
 
 	// Sync laporan penjualan agar tetap konsisten
-	_ = reports.SyncDailyProfitReport(db, branchID, userID, duplicate_receipt.DuplicateReceiptDate, total, profit, total_before, profit_before)
+	_ = reports.SyncDailyProfitReport(db, branchID, userID, duplicate_receipt.DuplicateReceiptDate, totals.Total, totals.Profit, total_before, profit_before)
 
 	return helpers.JSONResponse(c, fiber.StatusOK, "Duplicate receipt updated successfully", duplicate_receipt)
 }
