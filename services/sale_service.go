@@ -56,3 +56,19 @@ func ValidateSaleStock(product models.Product, qty int) error {
 	}
 	return nil
 }
+
+type PreparedSaleItem struct {
+	Item         models.SaleItems
+	UpdatedStock SaleItemStockUpdate
+	SaleTotals   PreparedSaleTotals
+}
+
+func PrepareSaleItem(item models.SaleItems, lookup SaleProductLookup, runningTotals PreparedSaleTotals) PreparedSaleItem {
+	updatedStock := BuildSaleItemStockUpdate(lookup.Product.Stock, item.Qty)
+	updatedTotals := AddSaleItemContribution(runningTotals, item.Price, lookup.Product.PurchasePrice, item.Qty, item.SubTotal)
+	return PreparedSaleItem{
+		Item:         item,
+		UpdatedStock: updatedStock,
+		SaleTotals:   updatedTotals,
+	}
+}

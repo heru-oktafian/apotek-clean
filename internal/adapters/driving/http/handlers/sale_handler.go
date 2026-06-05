@@ -109,19 +109,13 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 			return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.Stock, req.SaleItems[i].Qty), err)
 		}
 
-		stockUpdate := services.BuildSaleItemStockUpdate(product.Stock, req.SaleItems[i].Qty)
-		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", stockUpdate.NewStock).Error
+		preparedSaleItem := services.PrepareSaleItem(req.SaleItems[i], lookup, calculatedTotals)
+		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", preparedSaleItem.UpdatedStock.NewStock).Error
 		if err != nil {
 			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update stock for product %s", product.Name), err)
 		}
 
-		calculatedTotals = services.AddSaleItemContribution(
-			calculatedTotals,
-			req.SaleItems[i].Price,
-			product.PurchasePrice,
-			req.SaleItems[i].Qty,
-			req.SaleItems[i].SubTotal,
-		)
+		calculatedTotals = preparedSaleItem.SaleTotals
 	}
 
 	// Set nilai total_sale dan profit_estimate pada struct Sales
