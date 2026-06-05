@@ -1,14 +1,28 @@
 # Apotek-Clean
 
-Refactor repository **fiber-apotek** ke struktur **Clean Architecture** agar maintenance, testing, dan pengembangan fitur berikutnya lebih rapi.
+Refactor repository **fiber-apotek** ke arah **Clean Architecture** secara bertahap, dengan prioritas utama menjaga perilaku API tetap stabil sambil membersihkan struktur kode modul demi modul.
 
-## Tujuan
+## Status Saat Ini
 
-- Memisahkan domain, use case, adapter, dan framework
-- Menjaga perilaku API tetap sama seperti versi sebelumnya
-- Memudahkan pengujian, penggantian infrastruktur, dan scaling project
+Project ini sudah berada pada fase:
+- runtime utama tervalidasi
+- route internal utama aktif
+- export utama sudah aman
+- modul transaksi besar mulai direfactor bertahap
 
-## Struktur Proyek
+Dokumen progres penting:
+- `RUNTIME_AUDIT.md` → baseline audit runtime
+- `REFACTOR_CHECKPOINT.md` → checkpoint refactor terbaru
+
+## Fokus Refactor
+
+Tujuan fase saat ini:
+- menjaga kompatibilitas API lama
+- memindahkan alur HTTP utama ke `internal/adapters/driving/http`
+- mengurangi ketergantungan ke struktur legacy secara bertahap
+- merapikan handler besar menjadi helper/service kecil yang lebih aman dirawat
+
+## Struktur Project Saat Ini
 
 ```text
 apotek-clean/
@@ -16,91 +30,112 @@ apotek-clean/
 │   └── app/
 │       └── main.go
 ├── configs/
-│   ├── database_config.go
-│   └── timezone_config.go
-├── internal/
-│   ├── core/
-│   │   ├── entities/
-│   │   ├── ports/
-│   │   │   ├── driven/
-│   │   │   └── driving/
-│   │   └── usecases/
-│   ├── adapters/
-│   │   ├── driven/
-│   │   │   └── postgres/
-│   │   └── driving/
-│   │       └── http/
-│   │           ├── handlers/
-│   │           └── routes/
-│   ├── frameworks/
-│   │   ├── auth/
-│   │   ├── database/
-│   │   ├── export/
-│   │   │   ├── excel/
-│   │   │   └── pdf/
-│   │   ├── scheduler/
-│   │   └── web/
-│   └── utils/
-├── controllers/
 ├── helpers/
+├── internal/
+│   └── adapters/
+│       └── driving/
+│           └── http/
+│               ├── handlers/
+│               └── routes/
 ├── middlewares/
 ├── models/
-├── routes/
-├── schedulers/
-├── seeders/
 ├── services/
-├── .env.example
-├── go.mod
+├── seeders/
+├── schedulers/
+├── controllers/        # sisa transisi legacy yang belum seluruhnya dihapus
+├── routes/             # sisa transisi legacy yang belum seluruhnya dihapus
+├── RUNTIME_AUDIT.md
+├── REFACTOR_CHECKPOINT.md
 └── README.md
 ```
 
-## Keterangan Layer
+## Modul yang Sudah Stabil di Runtime
 
-### 1. Core
-Berisi logika inti aplikasi.
+Sudah tervalidasi melalui smoke test runtime:
+- auth dua tahap
+- branches
+- users
+- master data utama
+- purchase
+- sale
+- buy return
+- sale return
+- duplicate receipt
+- first stock
+- opname basic
+- reporting dasar
+- export Excel/PDF utama
+- export item-level
+- export audit/report/dashboard
 
-- `entities/` untuk model domain utama
-- `usecases/` untuk aturan bisnis
-- `ports/` untuk kontrak interface antara core dan layer luar
+## Progress Refactor Modul
 
-### 2. Adapters
-Berisi penghubung antara core dan dunia luar.
+### Purchase
+Paling jauh direfactor saat ini.
+Sudah dirapikan bertahap untuk:
+- editability helper
+- total helper
+- date parsing helper
+- item value preparation
+- dependency lookup
+- product update builder
+- response builder
+- supplier lookup
+- item response builder
+- item model builder
+- item preparation helper lokal
+- transaction orchestration helper lokal
+- rollback response helper
 
-- `driving/http/handlers/` untuk handler HTTP
-- `driving/http/routes/` untuk route registration
-- `driven/postgres/` untuk implementasi repository PostgreSQL
+### Sale
+Sudah mulai mengikuti pola purchase.
+Sudah dirapikan untuk:
+- editability helper
+- totals calculation helper
+- rollback response helper
+- stock update helper
+- product lookup + stock validation
+- sale item preparation
+- orchestration helper
 
-### 3. Frameworks
-Berisi detail teknis/infrastruktur.
-
-- `web/` untuk setup Fiber
-- `database/` untuk koneksi database
-- `auth/` untuk JWT atau auth helper
-- `scheduler/` untuk cron/scheduler
-- `export/` untuk export Excel/PDF
+### Duplicate Receipt
+Sudah mulai mengikuti pola yang sama.
+Sudah dirapikan untuk:
+- editability helper
+- totals helper
+- product lookup
+- stock validation
+- item preparation
+- wiring handler ke helper
+- orchestration helper
 
 ## Konfigurasi Environment
 
 Gunakan file `.env` di root project.
 
-### Contoh `.env`
+Catatan penting:
+- proses aplikasi masih membaca `.env` relatif terhadap working directory saat start
+- paling aman jalankan binary dari root project, atau pastikan `.env` tersedia di working directory runtime
+
+### Contoh env yang relevan dengan kode saat ini
 
 ```env
-APP_PORT=9001
+PORT=9002
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USER=postgres
-DB_PASSWORD=postgres
+DB_PASS=postgres
 DB_NAME=apotek_clean
-DB_SSLMODE=disable
-JWT_SECRET=change-me
+JWT_SECRET_KEY=change-me
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASS=
+REDIS_SHORT=0
 ```
 
-Jika belum ada, copy dari contoh:
-
-```bash
-cp .env.example .env
-```
+Perhatikan bahwa beberapa nama env masih mengikuti kode lama, misalnya:
+- `DB_PASS` bukan `DB_PASSWORD`
+- `JWT_SECRET_KEY` masih dipakai
 
 ## Menjalankan Project
 
@@ -119,68 +154,62 @@ go run ./cmd/app/main.go
 ### Build binary
 
 ```bash
-go build -o bin/apotek ./cmd/app
+go build -o ./bin/apotek ./cmd/app
 ./bin/apotek
 ```
 
-Server akan berjalan sesuai `APP_PORT` di `.env`, saat ini disiapkan untuk **9001**.
+Port dibaca dengan urutan fallback:
+1. `APP_PORT`
+2. `PORT`
+3. `SERVER_PORT`
+4. default `9001`
 
-## Database
+## Build dan Verifikasi
 
-Project menggunakan PostgreSQL. Pastikan database yang sesuai dengan `.env` sudah tersedia.
-
-Contoh quick check:
+Build utama yang dipakai selama fase ini:
 
 ```bash
-psql -h 127.0.0.1 -U postgres -d apotek_clean
+go build -o ./bin/apotek ./cmd/app
 ```
+
+Verifikasi runtime dilakukan bertahap dengan:
+- login
+- set branch
+- akses endpoint penting
+- smoke test transaksi utama
+- cek efek stok
+- cek report
+- cek export
+
+## Catatan Penting
+
+- Struktur legacy belum seluruhnya hilang, tetapi bagian aktifnya sudah jauh berkurang
+- Route utama sekarang dipusatkan melalui `internal/adapters/driving/http/routes`
+- Entry point resmi aplikasi adalah `cmd/app/main.go`
+- Refactor dilakukan incremental, tidak one-shot besar, untuk meminimalkan regression
+- Commit kecil yang lolos build dan smoke test lebih diutamakan dibanding refactor besar sekali jalan
+
+## Roadmap Fase Berikutnya
+
+Prioritas terdekat:
+- lanjut merapikan modul transaksi lain dengan pola yang sama
+- memperdalam cleanup sale / duplicate receipt bila masih ada area padat
+- lanjut ke modul seperti first stock, buy return, atau sale return
+- secara bertahap mengurangi sisa ketergantungan ke struktur legacy
 
 ## Testing
 
-### Unit test
+### Unit / package build check
 
 ```bash
 go test ./...
 ```
 
-### API test
+### Runtime smoke test
 
-Gunakan Postman collection yang sudah disiapkan untuk memastikan seluruh endpoint tetap kompatibel dengan versi sebelumnya.
-
-## Catatan Penting
-
-- Struktur lama seperti `controllers/`, `services/`, `routes/`, dan `models/` masih ada selama masa transisi refactor
-- Target akhirnya adalah seluruh alur utama berpindah ke `internal/`
-- File `cmd/app/main.go` adalah entry point utama aplikasi baru
-
-## Roadmap Refactor
-
-- [x] Menyiapkan struktur Clean Architecture
-- [x] Menyiapkan entities awal
-- [x] Menyiapkan use case, ports, adapters, dan frameworks dasar
-- [x] Menambahkan dukungan `.env`
-- [ ] Merapikan dependency injection penuh di `cmd/app/main.go`
-- [ ] Menyelesaikan seluruh implementasi repository dan handler sampai build benar-benar hijau
-- [ ] Verifikasi endpoint via Postman collection
-- [ ] Finalisasi dokumentasi deployment
-
-## Deploy Sederhana
-
-Contoh Dockerfile minimal:
-
-```dockerfile
-FROM golang:1.24-alpine AS builder
-WORKDIR /app
-COPY . .
-RUN go mod tidy && go build -o /apotek ./cmd/app
-
-FROM alpine:latest
-WORKDIR /app
-COPY --from=builder /apotek /apotek
-COPY .env .
-EXPOSE 9001
-ENTRYPOINT ["/apotek"]
-```
+Lihat ringkasan hasil validasi di:
+- `RUNTIME_AUDIT.md`
+- `REFACTOR_CHECKPOINT.md`
 
 ## Lisensi
 
