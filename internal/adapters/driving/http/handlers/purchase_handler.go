@@ -42,6 +42,40 @@ type preparedPurchaseTransactionItem struct {
 	subTotal      int
 }
 
+func createPurchaseTransactionReport(tx *gorm.DB, purchase models.Purchases, nowWIB time.Time) error {
+	transactionReportID := helpers.GenerateID("TRX")
+	transactionReport := models.TransactionReports{
+		ID:              transactionReportID,
+		TransactionType: models.Purchase,
+		UserID:          purchase.UserID,
+		BranchID:        purchase.BranchID,
+		Total:           purchase.TotalPurchase,
+		Payment:         purchase.Payment,
+		CreatedAt:       nowWIB,
+		UpdatedAt:       nowWIB,
+	}
+	return tx.Create(&transactionReport).Error
+}
+
+func applyPurchaseQuotaIfNeeded(tx *gorm.DB, subscriptionType string, branchID string) error {
+	if subscriptionType != "quota" {
+		return nil
+	}
+
+	var branch models.Branch
+	err := tx.Where("id = ?", branchID).First(&branch).Error
+	if err != nil {
+		return err
+	}
+
+	if branch.Quota <= 0 {
+		return errors.New("quota exceeded")
+	}
+
+	branch.Quota -= 1
+	return tx.Save(&branch).Error
+}
+
 func preparePurchaseTransactionItem(purchaseID string, itemInput models.PurchaseItemInput, lookup services.PurchaseItemLookupResult, parsedExpiredDate time.Time) preparedPurchaseTransactionItem {
 	preparedValues := services.PreparePurchaseItemValues(itemInput.Qty, itemInput.Price, lookup.ConversionValue)
 	purchaseItem := services.BuildPurchaseItemModel(helpers.GenerateID("PIT"), services.PurchaseItemModelParams{
@@ -690,45 +724,22 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create purchase items", err)
 	}
 
-	transactionReportID := helpers.GenerateID("TRX")
-	transactionReport := models.TransactionReports{
-		ID:              transactionReportID,
-		TransactionType: models.Purchase,
-		UserID:          purchase.UserID,
-		BranchID:        purchase.BranchID,
-		Total:           purchase.TotalPurchase,
-		Payment:         purchase.Payment,
-		CreatedAt:       nowWIB,
-		UpdatedAt:       nowWIB,
-	}
-	err = tx.Create(&transactionReport).Error
+	err = createPurchaseTransactionReport(tx, purchase, nowWIB)
 	if err != nil {
 		tx.Rollback()
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create transaction report for purchase", err)
 	}
 
-	if subscriptionType == "quota" {
-		var branch models.Branch
-		err = tx.Where("id = ?", req.Purchase.BranchID).First(&branch).Error
-		if err != nil {
-			tx.Rollback()
-			if err == gorm.ErrRecordNotFound {
-				return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", req.Purchase.BranchID), err)
-			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve branch details for quota update", err)
+	err = applyPurchaseQuotaIfNeeded(tx, subscriptionType, req.Purchase.BranchID)
+	if err != nil {
+		tx.Rollback()
+		if err == gorm.ErrRecordNotFound {
+			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", req.Purchase.BranchID), err)
 		}
-
-		if branch.Quota > 0 {
-			branch.Quota -= 1
-			err = tx.Save(&branch).Error
-			if err != nil {
-				tx.Rollback()
-				return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update quota for branch %s", branch.BranchName), err)
-			}
-		} else {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("No quota available for branch %s", branch.BranchName), errors.New("quota exceeded"))
+		if err.Error() == "quota exceeded" {
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, "No quota available for branch", err)
 		}
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to apply quota for purchase", err)
 	}
 
 	err = tx.Commit().Error
