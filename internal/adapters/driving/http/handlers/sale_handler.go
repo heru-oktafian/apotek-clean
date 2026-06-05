@@ -95,9 +95,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 		req.SaleItems[i].ID = itemID
 		req.SaleItems[i].SaleId = saleID // Kaitkan dengan Sale ID yang baru dibuat
 
-		// Dapatkan detail produk untuk stok dan perhitungan profit
-		var product models.Product
-		err = tx.Where("id = ?", req.SaleItems[i].ProductId).First(&product).Error
+		lookup, err := services.LookupSaleProduct(tx, req.SaleItems[i].ProductId)
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return rollbackSaleWithJSON(c, tx, fiber.StatusNotFound, "Product with ID %s not found", err)
@@ -105,9 +103,9 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 
 			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to retrieve product details", err)
 		}
+		product := lookup.Product
 
-		// Periksa ketersediaan stok
-		if product.Stock < req.SaleItems[i].Qty {
+		if err := services.ValidateSaleStock(product, req.SaleItems[i].Qty); err != nil {
 			return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.Stock, req.SaleItems[i].Qty), err)
 		}
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
 
@@ -37,4 +38,21 @@ type SaleItemStockUpdate struct {
 
 func BuildSaleItemStockUpdate(currentStock, qty int) SaleItemStockUpdate {
 	return SaleItemStockUpdate{NewStock: currentStock - qty}
+}
+
+type SaleProductLookup struct {
+	Product models.Product
+}
+
+func LookupSaleProduct(db *gorm.DB, productID string) (SaleProductLookup, error) {
+	var result SaleProductLookup
+	err := db.Where("id = ?", productID).First(&result.Product).Error
+	return result, err
+}
+
+func ValidateSaleStock(product models.Product, qty int) error {
+	if product.Stock < qty {
+		return errors.New("insufficient stock")
+	}
+	return nil
 }
