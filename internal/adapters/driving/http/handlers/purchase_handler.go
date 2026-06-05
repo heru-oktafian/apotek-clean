@@ -57,6 +57,11 @@ func createPurchaseTransactionReport(tx *gorm.DB, purchase models.Purchases, now
 	return tx.Create(&transactionReport).Error
 }
 
+func rollbackWithJSON(c *fiber.Ctx, tx *gorm.DB, status int, message string, err error) error {
+	tx.Rollback()
+	return helpers.JSONResponse(c, status, message, err)
+}
+
 func applyPurchaseQuotaIfNeeded(tx *gorm.DB, subscriptionType string, branchID string) error {
 	if subscriptionType != "quota" {
 		return nil
@@ -670,11 +675,10 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 	// Mendapatkan nama supplier (di luar loop item untuk efisiensi)
 	supplier, err := services.LookupPurchaseSupplier(tx, req.Purchase.SupplierId)
 	if err != nil {
-		tx.Rollback()
 		if err == gorm.ErrRecordNotFound {
-			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Supplier with ID %s not found", req.Purchase.SupplierId), err)
+			return rollbackWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Supplier with ID %s not found", req.Purchase.SupplierId), err)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve supplier details", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to retrieve supplier details", err)
 	}
 
 	// var stockTracksToCreate []models.StockTracks
@@ -688,14 +692,13 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 
 		lookup, err := services.LookupPurchaseItemDependencies(tx, purchase.BranchID, req.PurchaseItems[i].ProductId, req.PurchaseItems[i].UnitId)
 		if err != nil {
-			tx.Rollback()
 			if err == gorm.ErrRecordNotFound {
 				if tx.Where("id = ?", req.PurchaseItems[i].ProductId).First(&models.Product{}).Error == nil {
-					return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Unit with ID %s not found", req.PurchaseItems[i].UnitId), err)
+					return rollbackWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Unit with ID %s not found", req.PurchaseItems[i].UnitId), err)
 				}
-				return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Product with ID %s not found", req.PurchaseItems[i].ProductId), err)
+				return rollbackWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Product with ID %s not found", req.PurchaseItems[i].ProductId), err)
 			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase item dependencies", err)
+			return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to retrieve purchase item dependencies", err)
 		}
 
 		preparedTransactionItem := preparePurchaseTransactionItem(purchaseID, req.PurchaseItems[i], lookup, parsedExpiredDate)
@@ -704,8 +707,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 
 		err = tx.Model(&models.Product{}).Where("id = ?", preparedTransactionItem.productID).Updates(preparedTransactionItem.productUpdate).Error
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", preparedTransactionItem.productName), err)
+			return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", preparedTransactionItem.productName), err)
 		}
 		calculatedTotalPurchase += preparedTransactionItem.subTotal
 	}
@@ -714,32 +716,28 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 
 	err = tx.Create(&purchase).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create purchase", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create purchase", err)
 	}
 
 	err = tx.CreateInBatches(&purchaseItemsToCreate, len(purchaseItemsToCreate)).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create purchase items", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create purchase items", err)
 	}
 
 	err = createPurchaseTransactionReport(tx, purchase, nowWIB)
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create transaction report for purchase", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create transaction report for purchase", err)
 	}
 
 	err = applyPurchaseQuotaIfNeeded(tx, subscriptionType, req.Purchase.BranchID)
 	if err != nil {
-		tx.Rollback()
 		if err == gorm.ErrRecordNotFound {
-			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", req.Purchase.BranchID), err)
+			return rollbackWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", req.Purchase.BranchID), err)
 		}
 		if err.Error() == "quota exceeded" {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "No quota available for branch", err)
+			return rollbackWithJSON(c, tx, fiber.StatusBadRequest, "No quota available for branch", err)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to apply quota for purchase", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to apply quota for purchase", err)
 	}
 
 	err = tx.Commit().Error
