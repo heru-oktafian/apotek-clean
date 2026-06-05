@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"time"
 
 	models "apotek-clean/models"
@@ -37,4 +38,15 @@ func BuildBuyReturnResponse(buyReturn models.BuyReturns, items []models.BuyRetur
 		"payment":      buyReturn.Payment,
 		"items":        items,
 	}
+}
+
+type BuyReturnQtyValidation struct {
+	PreviouslyReturned int64
+}
+
+func ValidateBuyReturnQuantity(purchasedQty, returningQty int, previousReturned int64, productID string) error {
+	if int(previousReturned)+returningQty > purchasedQty {
+		return errors.New(productID)
+	}
+	return nil
 }

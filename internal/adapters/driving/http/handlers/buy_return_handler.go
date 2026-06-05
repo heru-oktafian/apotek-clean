@@ -116,8 +116,7 @@ func CreateBuyReturnTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memeriksa retur sebelumnya", err.Error())
 		}
 
-		// Validasi jika qty retur melebihi qty pembelian
-		if int(totalReturnedQty)+item.Qty > buyItem.Qty {
+		if err := services.ValidateBuyReturnQuantity(buyItem.Qty, item.Qty, totalReturnedQty, item.ProductId); err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Total qty retur untuk produk %s melebihi jumlah yang dibeli. Dibeli: %d, Sudah Diretur: %d, Retur Ini: %d",
 				item.ProductId, buyItem.Qty, totalReturnedQty, item.Qty), nil)
