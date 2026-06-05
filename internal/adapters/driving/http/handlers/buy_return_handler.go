@@ -5,11 +5,11 @@ import (
 	strings "strings"
 	time "time"
 
-	fiber "github.com/gofiber/fiber/v2"
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	services "apotek-clean/services"
+	fiber "github.com/gofiber/fiber/v2"
 	gorm "gorm.io/gorm"
 )
 
@@ -47,14 +47,9 @@ func CreateBuyReturnTransaction(c *fiber.Ctx) error {
 		}
 	}
 
-	var returnDate time.Time
-	if req.BuyReturn.ReturnDate == "" {
-		returnDate = nowWIB
-	} else {
-		returnDate, err = time.Parse("2006-01-02", req.BuyReturn.ReturnDate)
-		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format return_date tidak valid. Gunakan YYYY-MM-DD.", err.Error())
-		}
+	returnDate, err := services.ParseBuyReturnDate(req.BuyReturn.ReturnDate, nowWIB)
+	if err != nil {
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format return_date tidak valid. Gunakan YYYY-MM-DD.", err.Error())
 	}
 
 	tx := db.Begin()
@@ -164,7 +159,7 @@ func CreateBuyReturnTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", item.ProductId), err.Error())
 		}
 
-		subTotal := buyItem.Price * item.Qty
+		subTotal := services.SumBuyReturnSubTotal(buyItem.Price, item.Qty)
 		totalReturn += subTotal
 
 		buyReturnItems = append(buyReturnItems, models.BuyReturnItems{
@@ -238,14 +233,9 @@ func CreateBuyReturnTransaction(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal melakukan commit transaksi", err.Error())
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Transaksi retur pembelian berhasil dibuat", fiber.Map{
-		"id":           buyReturn.ID,
-		"purchase_id":  buyReturn.PurchaseId,
-		"return_date":  helpers.FormatIndonesianDate(buyReturn.ReturnDate),
-		"total_return": buyReturn.TotalReturn,
-		"payment":      buyReturn.Payment,
-		"items":        buyReturnItems,
-	})
+	response := services.BuildBuyReturnResponse(buyReturn, buyReturnItems)
+	response["return_date"] = helpers.FormatIndonesianDate(buyReturn.ReturnDate)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Transaksi retur pembelian berhasil dibuat", response)
 }
 
 // GetBuyItemsForReturn digunakan untuk mengambil item pembelian yang bisa diretur
