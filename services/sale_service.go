@@ -19,3 +19,14 @@ func EnsureSaleEditable(db *gorm.DB, saleID string) error {
 	}
 	return nil
 }
+
+type PreparedSaleTotals struct {
+	TotalSale      int
+	ProfitEstimate int
+}
+
+func AddSaleItemContribution(current PreparedSaleTotals, price, purchasePrice, qty, subTotal int) PreparedSaleTotals {
+	current.TotalSale += subTotal
+	current.ProfitEstimate += (price - purchasePrice) * qty
+	return current
+}

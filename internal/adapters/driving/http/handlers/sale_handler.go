@@ -80,8 +80,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	req.Sale.UpdatedAt = nowWIB
 
 	// Inisialisasi total_sale dan profit_estimate untuk kalkulasi
-	var calculatedTotalSale int
-	var calculatedProfitEstimate int
+	calculatedTotals := services.PreparedSaleTotals{}
 
 	// 2. Simpan data SaleItems (anak-anak) dan Update Stok
 	// var stockTracksToCreate []models.StockTracks
@@ -117,15 +116,18 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update stock for product %s", product.Name), err)
 		}
 
-		// Kalkulasi total_sale dan profit_estimate dari item_sales
-		calculatedTotalSale += req.SaleItems[i].SubTotal
-		// Profit per item = (Harga Jual - Harga Beli) * Qty
-		calculatedProfitEstimate += (req.SaleItems[i].Price - product.PurchasePrice) * req.SaleItems[i].Qty
+		calculatedTotals = services.AddSaleItemContribution(
+			calculatedTotals,
+			req.SaleItems[i].Price,
+			product.PurchasePrice,
+			req.SaleItems[i].Qty,
+			req.SaleItems[i].SubTotal,
+		)
 	}
 
 	// Set nilai total_sale dan profit_estimate pada struct Sales
-	req.Sale.TotalSale = calculatedTotalSale - req.Sale.Discount // Kurangi profit dengan diskon keseluruhan
-	req.Sale.ProfitEstimate = calculatedProfitEstimate
+	req.Sale.TotalSale = calculatedTotals.TotalSale - req.Sale.Discount
+	req.Sale.ProfitEstimate = calculatedTotals.ProfitEstimate
 
 	// Simpan data Sales setelah kalkulasi total dan profit
 	err = tx.Create(&req.Sale).Error
