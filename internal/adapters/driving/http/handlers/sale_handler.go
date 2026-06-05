@@ -15,6 +15,11 @@ import (
 	fiber "github.com/gofiber/fiber/v2"
 )
 
+func rollbackSaleWithJSON(c *fiber.Ctx, tx *gorm.DB, status int, message string, err error) error {
+	tx.Rollback()
+	return helpers.JSONResponse(c, status, message, err)
+}
+
 // CreateSaleTransaction controller
 func CreateSaleTransaction(c *fiber.Ctx) error {
 	// Hitung waktu sekarang dalam WIB
@@ -94,26 +99,23 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 		var product models.Product
 		err = tx.Where("id = ?", req.SaleItems[i].ProductId).First(&product).Error
 		if err != nil {
-			tx.Rollback()
 			if err == gorm.ErrRecordNotFound {
-				return helpers.JSONResponse(c, fiber.StatusNotFound, "Product with ID %s not found", err)
+				return rollbackSaleWithJSON(c, tx, fiber.StatusNotFound, "Product with ID %s not found", err)
 			}
 
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve product details", err)
+			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to retrieve product details", err)
 		}
 
 		// Periksa ketersediaan stok
 		if product.Stock < req.SaleItems[i].Qty {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.Stock, req.SaleItems[i].Qty), err)
+			return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.Stock, req.SaleItems[i].Qty), err)
 		}
 
 		// Kurangi stok produk
 		newStock := product.Stock - req.SaleItems[i].Qty
 		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", newStock).Error
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update stock for product %s", product.Name), err)
+			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update stock for product %s", product.Name), err)
 		}
 
 		calculatedTotals = services.AddSaleItemContribution(
@@ -132,15 +134,13 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	// Simpan data Sales setelah kalkulasi total dan profit
 	err = tx.Create(&req.Sale).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create sale", err)
+		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create sale", err)
 	}
 
 	// Simpan SaleItems dalam batch
 	err = tx.CreateInBatches(&req.SaleItems, len(req.SaleItems)).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create sale items", err)
+		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create sale items", err)
 	}
 
 	// 3. Simpan data di TransactionReports
@@ -157,16 +157,14 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	}
 	err = tx.Create(&transactionReport).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create transaction report", err)
+		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create transaction report", err)
 	}
 
 	// 4. Update/Simpan data di DailyProfitReport
 	var dailyProfit models.DailyProfitReport
 	// Pastikan SaleDate tidak nol saat diakses (validasi required sudah ada, tapi jaga-jaga)
 	if req.Sale.SaleDate.IsZero() {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "SaleDate cannot be zero for daily profit report calculation. Please provide a valid date.", nil)
+		return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, "SaleDate cannot be zero for daily profit report calculation. Please provide a valid date.", nil)
 	}
 
 	reportDate := req.Sale.SaleDate.Format("2006-01-02") // Format tanggal menjadi "YYYY-MM-DD"
