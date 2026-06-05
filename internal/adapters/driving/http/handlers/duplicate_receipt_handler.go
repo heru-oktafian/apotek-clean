@@ -14,6 +14,67 @@ import (
 	gorm "gorm.io/gorm"
 )
 
+func rollbackDuplicateReceiptWithJSON(c *fiber.Ctx, tx *gorm.DB, status int, message string, err error) error {
+	tx.Rollback()
+	return helpers.JSONResponse(c, status, message, err)
+}
+
+func createDuplicateReceiptTransactionReport(tx *gorm.DB, duplicateReceipt models.DuplicateReceipts, nowWIB time.Time) error {
+	transactionReport := models.TransactionReports{
+		ID:              duplicateReceipt.ID,
+		TransactionType: models.Sale,
+		UserID:          duplicateReceipt.UserID,
+		BranchID:        duplicateReceipt.BranchID,
+		Total:           duplicateReceipt.TotalDuplicateReceipt,
+		Payment:         duplicateReceipt.Payment,
+		CreatedAt:       nowWIB,
+		UpdatedAt:       nowWIB,
+	}
+	return tx.Create(&transactionReport).Error
+}
+
+func syncDuplicateReceiptDailyProfit(tx *gorm.DB, duplicateReceipt models.DuplicateReceipts, nowWIB time.Time) error {
+	var dailyProfit models.DailyProfitReport
+	reportDate := duplicateReceipt.DuplicateReceiptDate.Format("2006-01-02")
+	err := tx.Where("report_date = ? AND branch_id = ? AND user_id = ?", reportDate, duplicateReceipt.BranchID, duplicateReceipt.UserID).First(&dailyProfit).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return err
+	}
+	if err == gorm.ErrRecordNotFound {
+		dailyProfit = models.DailyProfitReport{
+			ID:             helpers.GenerateID("DPR"),
+			ReportDate:     duplicateReceipt.DuplicateReceiptDate,
+			UserID:         duplicateReceipt.UserID,
+			BranchID:       duplicateReceipt.BranchID,
+			TotalSales:     duplicateReceipt.TotalDuplicateReceipt,
+			ProfitEstimate: duplicateReceipt.ProfitEstimate,
+			CreatedAt:      nowWIB,
+			UpdatedAt:      nowWIB,
+		}
+		return tx.Create(&dailyProfit).Error
+	}
+	dailyProfit.TotalSales += duplicateReceipt.TotalDuplicateReceipt
+	dailyProfit.ProfitEstimate += duplicateReceipt.ProfitEstimate
+	dailyProfit.UpdatedAt = time.Now()
+	return tx.Save(&dailyProfit).Error
+}
+
+func applyDuplicateReceiptQuotaIfNeeded(tx *gorm.DB, subscriptionType, branchID string) error {
+	if subscriptionType != "quota" {
+		return nil
+	}
+	var branch models.Branch
+	err := tx.Where("id = ?", branchID).First(&branch).Error
+	if err != nil {
+		return err
+	}
+	if branch.Quota <= 0 {
+		return errors.New("quota exceeded")
+	}
+	branch.Quota -= 1
+	return tx.Save(&branch).Error
+}
+
 // CreateDuplicateReceipt handles the creation of a new duplicate receipt record.
 func CreateDuplicateReceipt(c *fiber.Ctx) error {
 	// Hitung waktu saat ini di zona WIB
@@ -129,98 +190,33 @@ func CreateDuplicateReceipt(c *fiber.Ctx) error {
 
 	err = tx.Create(&insertDuplicateReceipt).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create duplicate receipt", err)
+		return rollbackDuplicateReceiptWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create duplicate receipt", err)
 	}
 
 	err = tx.CreateInBatches(&req.Items, len(req.Items)).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create duplicate items", err)
+		return rollbackDuplicateReceiptWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create duplicate items", err)
 	}
 
-	transactionReportID := durID // Gunakan ID yang sama dengan DuplicateReceipt ID
-	transactionReport := models.TransactionReports{
-		ID:              transactionReportID,
-		TransactionType: models.Sale, // Tipe transaksi adalah "sale"
-		UserID:          userID,
-		BranchID:        branchID,
-		Total:           req.DuplicateReceipt.TotalDuplicateReceipt,
-		Payment:         req.DuplicateReceipt.Payment,
-		CreatedAt:       nowWIB,
-		UpdatedAt:       nowWIB,
-	}
-	err = tx.Create(&transactionReport).Error
+	err = createDuplicateReceiptTransactionReport(tx, insertDuplicateReceipt, nowWIB)
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create transaction report", err)
+		return rollbackDuplicateReceiptWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create transaction report", err)
 	}
 
-	// 4. Sinkronisasi laporan duplicate receipt
-	// Inisialisasi laporan duplicate receipt
-	var dailyProfit models.DailyProfitReport
-
-	reportDate := parsedDate.Format("2006-01-02") // Format tanggal menjadi "YYYY-MM-DD"
-	err = tx.Where("report_date = ? AND branch_id = ? AND user_id = ?", reportDate, branchID, userID).First(&dailyProfit).Error
-
-	// Cek error selain record not found
-	if err != nil && err != gorm.ErrRecordNotFound {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to check daily profit report", err)
+	err = syncDuplicateReceiptDailyProfit(tx, insertDuplicateReceipt, nowWIB)
+	if err != nil {
+		return rollbackDuplicateReceiptWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to sync daily profit report", err)
 	}
 
-	if err == gorm.ErrRecordNotFound {
-		// Jika belum ada, buat entri baru
-		dailyProfitID := helpers.GenerateID("DPR")
-		dailyProfit = models.DailyProfitReport{
-			ID:             dailyProfitID,
-			ReportDate:     parsedDate,
-			UserID:         userID,
-			BranchID:       branchID,
-			TotalSales:     req.DuplicateReceipt.TotalDuplicateReceipt,
-			ProfitEstimate: req.DuplicateReceipt.ProfitEstimate,
-			CreatedAt:      nowWIB,
-			UpdatedAt:      nowWIB,
+	err = applyDuplicateReceiptQuotaIfNeeded(tx, subscriptionType, branchID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return rollbackDuplicateReceiptWithJSON(c, tx, fiber.StatusNotFound, "Branch not found", err)
 		}
-		err = tx.Create(&dailyProfit).Error
-		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create daily profit report", err)
+		if err.Error() == "quota exceeded" {
+			return rollbackDuplicateReceiptWithJSON(c, tx, fiber.StatusBadRequest, "No quota available for branch", nil)
 		}
-	} else {
-		// Jika sudah ada, update total_sales dan profit_estimate yang sudah ada
-		dailyProfit.TotalSales += req.DuplicateReceipt.TotalDuplicateReceipt
-		dailyProfit.ProfitEstimate += req.DuplicateReceipt.ProfitEstimate
-		dailyProfit.UpdatedAt = time.Now()
-		err = tx.Save(&dailyProfit).Error
-		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update daily profit report", err)
-		}
-	}
-
-	if subscriptionType == "quota" {
-		var branch models.Branch
-		err = tx.Where("id = ?", branchID).First(&branch).Error
-		if err != nil {
-			tx.Rollback()
-			if err == gorm.ErrRecordNotFound {
-				return helpers.JSONResponse(c, fiber.StatusNotFound, "Branch not found", err)
-			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve branch details for quota update", err)
-		}
-
-		if branch.Quota > 0 {
-			branch.Quota -= 1
-			err = tx.Save(&branch).Error
-			if err != nil {
-				tx.Rollback()
-				return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update quota for branch", err)
-			}
-		} else {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "No quota available for branch", nil)
-		}
+		return rollbackDuplicateReceiptWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to retrieve branch details for quota update", err)
 	}
 
 	if req.DuplicateReceipt.MemberId != "" && req.DuplicateReceipt.MemberId != defaultMember {
