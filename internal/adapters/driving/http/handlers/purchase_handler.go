@@ -641,7 +641,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 		itemPrice := preparedItem.ItemPrice
 		itemSubTotal := preparedItem.ItemSubTotal
 
-		purchaseItemDB := services.BuildPurchaseItemModel(services.PurchaseItemModelParams{
+		purchaseItemDB := services.BuildPurchaseItemModel(helpers.GenerateID("PIT"), services.PurchaseItemModelParams{
 			PurchaseID:  purchaseID,
 			ProductID:   req.PurchaseItems[i].ProductId,
 			UnitID:      req.PurchaseItems[i].UnitId,
