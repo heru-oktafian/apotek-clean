@@ -111,9 +111,8 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 			return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.Stock, req.SaleItems[i].Qty), err)
 		}
 
-		// Kurangi stok produk
-		newStock := product.Stock - req.SaleItems[i].Qty
-		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", newStock).Error
+		stockUpdate := services.BuildSaleItemStockUpdate(product.Stock, req.SaleItems[i].Qty)
+		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", stockUpdate.NewStock).Error
 		if err != nil {
 			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update stock for product %s", product.Name), err)
 		}

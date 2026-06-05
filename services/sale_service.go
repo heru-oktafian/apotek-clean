@@ -30,3 +30,11 @@ func AddSaleItemContribution(current PreparedSaleTotals, price, purchasePrice, q
 	current.ProfitEstimate += (price - purchasePrice) * qty
 	return current
 }
+
+type SaleItemStockUpdate struct {
+	NewStock int
+}
+
+func BuildSaleItemStockUpdate(currentStock, qty int) SaleItemStockUpdate {
+	return SaleItemStockUpdate{NewStock: currentStock - qty}
+}
