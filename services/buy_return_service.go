@@ -5,6 +5,7 @@ import (
 	"time"
 
 	models "apotek-clean/models"
+	gorm "gorm.io/gorm"
 )
 
 func ParseBuyReturnDate(inputDate string, fallback time.Time) (time.Time, error) {
@@ -49,4 +50,25 @@ func ValidateBuyReturnQuantity(purchasedQty, returningQty int, previousReturned 
 		return errors.New(productID)
 	}
 	return nil
+}
+
+type BuyReturnPurchaseLookup struct {
+	PurchaseItem models.PurchaseItems
+	ReturnedQty  int64
+}
+
+func LookupBuyReturnPurchaseItem(db *gorm.DB, purchaseID, productID string) (BuyReturnPurchaseLookup, error) {
+	var result BuyReturnPurchaseLookup
+	err := db.Where("purchase_id = ? AND product_id = ?", purchaseID, productID).First(&result.PurchaseItem).Error
+	return result, err
+}
+
+func LookupBuyReturnReturnedQty(db *gorm.DB, purchaseID, productID string) (int64, error) {
+	var totalReturnedQty int64
+	err := db.Table("buy_return_items bri").
+		Select("COALESCE(SUM(bri.qty), 0)").
+		Joins("JOIN buy_returns br ON br.id = bri.buy_return_id").
+		Where("br.purchase_id = ? AND bri.product_id = ?", purchaseID, productID).
+		Scan(&totalReturnedQty).Error
+	return totalReturnedQty, err
 }
