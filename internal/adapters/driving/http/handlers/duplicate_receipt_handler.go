@@ -76,9 +76,7 @@ func CreateDuplicateReceipt(c *fiber.Ctx) error {
 		req.Items[i].ID = itemID
 		req.Items[i].DuplicateReceiptId = durID
 
-		// Dapatkan detail produk dari database
-		var product models.Product
-		err = tx.Where("id = ?", req.Items[i].ProductId).First(&product).Error
+		lookup, err := services.LookupDuplicateReceiptProduct(tx, req.Items[i].ProductId)
 		if err != nil {
 			tx.Rollback()
 			if err == gorm.ErrRecordNotFound {
@@ -86,28 +84,23 @@ func CreateDuplicateReceipt(c *fiber.Ctx) error {
 			}
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve product details", err)
 		}
+		product := lookup.Product
 
-		// Periksa ketersediaan stok produk
-		if product.Stock < req.Items[i].Qty {
+		if err := services.ValidateDuplicateReceiptStock(product, req.Items[i].Qty); err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.Stock, req.Items[i].Qty), err)
 		}
 
-		// Kurangi stok produk
-		newStock := product.Stock - req.Items[i].Qty
+		preparedItem := services.PrepareDuplicateReceiptItem(req.Items[i], lookup, services.PreparedDuplicateReceiptTotals{Total: totalDUR, Profit: totalProfDUR})
 
-		// Update stock in Redis
-
-		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", newStock).Error
+		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", preparedItem.UpdatedStock.NewStock).Error
 		if err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update stock for product", err)
 		}
 
-		// Kalkulasi total_duplicate_recipe dan profit_estimate dari item-item
-		totalDUR += req.Items[i].SubTotal
-		// Profit per item = (Harga Jual - Harga Beli) * Qty
-		totalProfDUR += (req.Items[i].Price - product.PurchasePrice) * req.Items[i].Qty
+		totalDUR = preparedItem.Totals.Total
+		totalProfDUR = preparedItem.Totals.Profit
 	}
 
 	// Hitung total duplicate receipt dari item-item yang ada
