@@ -654,17 +654,12 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 		purchaseItemsToCreate = append(purchaseItemsToCreate, purchaseItemDB)
 
 		// --- Siapkan data untuk respons ---
-		purchaseItemResp := models.PurchaseItemResponse{
-			ID:          purchaseItemDB.ID,
-			ProductID:   purchaseItemDB.ProductId,
-			ProductName: product.Name, // <--- Ambil dari product yang sudah diambil
-			UnitID:      purchaseItemDB.UnitId,
-			UnitName:    unit.Name, // <--- Ambil dari unit yang sudah diambil
-			Price:       purchaseItemDB.Price,
-			Qty:         purchaseItemDB.Qty,
-			SubTotal:    purchaseItemDB.SubTotal,
-			ExpiredDate: parsedExpiredDate.Format("02 January 2006"), // <--- Format tanggal
-		}
+		purchaseItemResp := services.BuildPurchaseItemResponse(services.PurchaseItemResponseParams{
+			Item:        purchaseItemDB,
+			ProductName: product.Name,
+			UnitName:    unit.Name,
+			ExpiredDate: parsedExpiredDate,
+		})
 		purchaseItemsForResponse = append(purchaseItemsForResponse, purchaseItemResp)
 		// --- Akhir persiapan data respons ---
 

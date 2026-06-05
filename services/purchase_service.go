@@ -120,3 +120,24 @@ func LookupPurchaseSupplier(db *gorm.DB, supplierID string) (models.Supplier, er
 	err := db.Where("id = ?", supplierID).First(&supplier).Error
 	return supplier, err
 }
+
+type PurchaseItemResponseParams struct {
+	Item        models.PurchaseItems
+	ProductName string
+	UnitName    string
+	ExpiredDate time.Time
+}
+
+func BuildPurchaseItemResponse(params PurchaseItemResponseParams) models.PurchaseItemResponse {
+	return models.PurchaseItemResponse{
+		ID:          params.Item.ID,
+		ProductID:   params.Item.ProductId,
+		ProductName: params.ProductName,
+		UnitID:      params.Item.UnitId,
+		UnitName:    params.UnitName,
+		Price:       params.Item.Price,
+		Qty:         params.Item.Qty,
+		SubTotal:    params.Item.SubTotal,
+		ExpiredDate: params.ExpiredDate.Format("02 January 2006"),
+	}
+}
