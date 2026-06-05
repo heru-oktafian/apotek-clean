@@ -33,6 +33,42 @@ func recalculatePurchaseAfterItemChange(db *gorm.DB, purchaseID string) error {
 	return reports.RecalculateTotalPurchase(db, purchaseID)
 }
 
+type preparedPurchaseTransactionItem struct {
+	purchaseItem  models.PurchaseItems
+	responseItem  models.PurchaseItemResponse
+	productID     string
+	productName   string
+	productUpdate map[string]interface{}
+	subTotal      int
+}
+
+func preparePurchaseTransactionItem(purchaseID string, itemInput models.PurchaseItemInput, lookup services.PurchaseItemLookupResult, parsedExpiredDate time.Time) preparedPurchaseTransactionItem {
+	preparedValues := services.PreparePurchaseItemValues(itemInput.Qty, itemInput.Price, lookup.ConversionValue)
+	purchaseItem := services.BuildPurchaseItemModel(helpers.GenerateID("PIT"), services.PurchaseItemModelParams{
+		PurchaseID:  purchaseID,
+		ProductID:   itemInput.ProductId,
+		UnitID:      itemInput.UnitId,
+		Price:       preparedValues.ItemPrice,
+		Qty:         itemInput.Qty,
+		SubTotal:    preparedValues.ItemSubTotal,
+		ExpiredDate: parsedExpiredDate,
+	})
+	responseItem := services.BuildPurchaseItemResponse(services.PurchaseItemResponseParams{
+		Item:        purchaseItem,
+		ProductName: lookup.Product.Name,
+		UnitName:    lookup.Unit.Name,
+		ExpiredDate: parsedExpiredDate,
+	})
+	return preparedPurchaseTransactionItem{
+		purchaseItem:  purchaseItem,
+		responseItem:  responseItem,
+		productID:     lookup.Product.ID,
+		productName:   lookup.Product.Name,
+		productUpdate: services.BuildPurchasedProductUpdates(lookup.Product, preparedValues.ActualQtyToAdd, parsedExpiredDate),
+		subTotal:      preparedValues.ItemSubTotal,
+	}
+}
+
 // CreatePurchase Function is using to create new purchase
 func CreatePurchase(c *fiber.Ctx) error {
 
@@ -628,50 +664,16 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase item dependencies", err)
 		}
 
-		product := lookup.Product
-		unit := lookup.Unit
+		preparedTransactionItem := preparePurchaseTransactionItem(purchaseID, req.PurchaseItems[i], lookup, parsedExpiredDate)
+		purchaseItemsToCreate = append(purchaseItemsToCreate, preparedTransactionItem.purchaseItem)
+		purchaseItemsForResponse = append(purchaseItemsForResponse, preparedTransactionItem.responseItem)
 
-		// --- Logika Konversi Satuan ---
-		conversionValue := lookup.ConversionValue
-		preparedItem := services.PreparePurchaseItemValues(req.PurchaseItems[i].Qty, req.PurchaseItems[i].Price, conversionValue)
-		actualQtyToAdd := preparedItem.ActualQtyToAdd
-		// --- Akhir Logika Konversi Satuan ---
-
-		// --- Perhitungan Price dan SubTotal Otomatis ---
-		itemPrice := preparedItem.ItemPrice
-		itemSubTotal := preparedItem.ItemSubTotal
-
-		purchaseItemDB := services.BuildPurchaseItemModel(helpers.GenerateID("PIT"), services.PurchaseItemModelParams{
-			PurchaseID:  purchaseID,
-			ProductID:   req.PurchaseItems[i].ProductId,
-			UnitID:      req.PurchaseItems[i].UnitId,
-			Price:       itemPrice,
-			Qty:         req.PurchaseItems[i].Qty,
-			SubTotal:    itemSubTotal,
-			ExpiredDate: parsedExpiredDate,
-		})
-		purchaseItemsToCreate = append(purchaseItemsToCreate, purchaseItemDB)
-
-		// --- Siapkan data untuk respons ---
-		purchaseItemResp := services.BuildPurchaseItemResponse(services.PurchaseItemResponseParams{
-			Item:        purchaseItemDB,
-			ProductName: product.Name,
-			UnitName:    unit.Name,
-			ExpiredDate: parsedExpiredDate,
-		})
-		purchaseItemsForResponse = append(purchaseItemsForResponse, purchaseItemResp)
-		// --- Akhir persiapan data respons ---
-
-		// --- Tambah stok dan cek/update expired_date ---
-		updates := services.BuildPurchasedProductUpdates(product, actualQtyToAdd, parsedExpiredDate)
-
-		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Updates(updates).Error
+		err = tx.Model(&models.Product{}).Where("id = ?", preparedTransactionItem.productID).Updates(preparedTransactionItem.productUpdate).Error
 		if err != nil {
 			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", product.Name), err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", preparedTransactionItem.productName), err)
 		}
-		// --- Akhir tambah stok dan cek/update expired_date ---
-		calculatedTotalPurchase += itemSubTotal
+		calculatedTotalPurchase += preparedTransactionItem.subTotal
 	}
 
 	purchase.TotalPurchase = calculatedTotalPurchase
