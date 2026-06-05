@@ -641,16 +641,15 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 		itemPrice := preparedItem.ItemPrice
 		itemSubTotal := preparedItem.ItemSubTotal
 
-		purchaseItemDB := models.PurchaseItems{
-			ID:          helpers.GenerateID("PIT"),
-			PurchaseId:  purchaseID,
-			ProductId:   req.PurchaseItems[i].ProductId,
-			UnitId:      req.PurchaseItems[i].UnitId,
+		purchaseItemDB := services.BuildPurchaseItemModel(services.PurchaseItemModelParams{
+			PurchaseID:  purchaseID,
+			ProductID:   req.PurchaseItems[i].ProductId,
+			UnitID:      req.PurchaseItems[i].UnitId,
 			Price:       itemPrice,
 			Qty:         req.PurchaseItems[i].Qty,
 			SubTotal:    itemSubTotal,
 			ExpiredDate: parsedExpiredDate,
-		}
+		})
 		purchaseItemsToCreate = append(purchaseItemsToCreate, purchaseItemDB)
 
 		// --- Siapkan data untuk respons ---

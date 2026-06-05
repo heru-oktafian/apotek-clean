@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
@@ -139,5 +140,28 @@ func BuildPurchaseItemResponse(params PurchaseItemResponseParams) models.Purchas
 		Qty:         params.Item.Qty,
 		SubTotal:    params.Item.SubTotal,
 		ExpiredDate: params.ExpiredDate.Format("02 January 2006"),
+	}
+}
+
+type PurchaseItemModelParams struct {
+	PurchaseID  string
+	ProductID   string
+	UnitID      string
+	Price       int
+	Qty         int
+	SubTotal    int
+	ExpiredDate time.Time
+}
+
+func BuildPurchaseItemModel(params PurchaseItemModelParams) models.PurchaseItems {
+	return models.PurchaseItems{
+		ID:          helpers.GenerateID("PIT"),
+		PurchaseId:  params.PurchaseID,
+		ProductId:   params.ProductID,
+		UnitId:      params.UnitID,
+		Price:       params.Price,
+		Qty:         params.Qty,
+		SubTotal:    params.SubTotal,
+		ExpiredDate: params.ExpiredDate,
 	}
 }
