@@ -20,6 +20,69 @@ func rollbackSaleWithJSON(c *fiber.Ctx, tx *gorm.DB, status int, message string,
 	return helpers.JSONResponse(c, status, message, err)
 }
 
+func createSaleTransactionReport(tx *gorm.DB, sale models.Sales, nowWIB time.Time) error {
+	transactionReport := models.TransactionReports{
+		ID:              sale.ID,
+		TransactionType: models.Sale,
+		UserID:          sale.UserID,
+		BranchID:        sale.BranchID,
+		Total:           sale.TotalSale - sale.Discount,
+		Payment:         sale.Payment,
+		CreatedAt:       nowWIB,
+		UpdatedAt:       nowWIB,
+	}
+	return tx.Create(&transactionReport).Error
+}
+
+func syncSaleDailyProfit(tx *gorm.DB, sale models.Sales, nowWIB time.Time) error {
+	var dailyProfit models.DailyProfitReport
+	if sale.SaleDate.IsZero() {
+		return errors.New("sale date cannot be zero")
+	}
+
+	reportDate := sale.SaleDate.Format("2006-01-02")
+	err := tx.Where("report_date = ? AND branch_id = ? AND user_id = ?", reportDate, sale.BranchID, sale.UserID).First(&dailyProfit).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return err
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		dailyProfit = models.DailyProfitReport{
+			ID:             helpers.GenerateID("DPR"),
+			ReportDate:     sale.SaleDate,
+			UserID:         sale.UserID,
+			BranchID:       sale.BranchID,
+			TotalSales:     sale.TotalSale,
+			ProfitEstimate: sale.ProfitEstimate,
+			CreatedAt:      nowWIB,
+			UpdatedAt:      nowWIB,
+		}
+		return tx.Create(&dailyProfit).Error
+	}
+
+	dailyProfit.TotalSales += sale.TotalSale
+	dailyProfit.ProfitEstimate += sale.ProfitEstimate
+	dailyProfit.UpdatedAt = time.Now()
+	return tx.Save(&dailyProfit).Error
+}
+
+func applySaleQuotaIfNeeded(tx *gorm.DB, subscriptionType string, branchID string) error {
+	if subscriptionType != "quota" {
+		return nil
+	}
+
+	var branch models.Branch
+	err := tx.Where("id = ?", branchID).First(&branch).Error
+	if err != nil {
+		return err
+	}
+	if branch.Quota <= 0 {
+		return errors.New("quota exceeded")
+	}
+	branch.Quota -= 1
+	return tx.Save(&branch).Error
+}
+
 // CreateSaleTransaction controller
 func CreateSaleTransaction(c *fiber.Ctx) error {
 	// Hitung waktu sekarang dalam WIB
@@ -135,91 +198,28 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	}
 
 	// 3. Simpan data di TransactionReports
-	transactionReportID := saleID // Gunakan Sale ID sebagai TransactionReport ID
-	transactionReport := models.TransactionReports{
-		ID:              transactionReportID,
-		TransactionType: models.Sale, // Tipe transaksi adalah "sale"
-		UserID:          req.Sale.UserID,
-		BranchID:        req.Sale.BranchID,
-		Total:           req.Sale.TotalSale - req.Sale.Discount,
-		Payment:         req.Sale.Payment,
-		CreatedAt:       nowWIB,
-		UpdatedAt:       nowWIB,
-	}
-	err = tx.Create(&transactionReport).Error
+	err = createSaleTransactionReport(tx, req.Sale, nowWIB)
 	if err != nil {
 		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create transaction report", err)
 	}
 
-	// 4. Update/Simpan data di DailyProfitReport
-	var dailyProfit models.DailyProfitReport
-	// Pastikan SaleDate tidak nol saat diakses (validasi required sudah ada, tapi jaga-jaga)
-	if req.Sale.SaleDate.IsZero() {
-		return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, "SaleDate cannot be zero for daily profit report calculation. Please provide a valid date.", nil)
+	err = syncSaleDailyProfit(tx, req.Sale, nowWIB)
+	if err != nil {
+		if err.Error() == "sale date cannot be zero" {
+			return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, "SaleDate cannot be zero for daily profit report calculation. Please provide a valid date.", nil)
+		}
+		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to sync daily profit report", err)
 	}
 
-	reportDate := req.Sale.SaleDate.Format("2006-01-02") // Format tanggal menjadi "YYYY-MM-DD"
-	err = tx.Where("report_date = ? AND branch_id = ? AND user_id = ?", reportDate, req.Sale.BranchID, req.Sale.UserID).First(&dailyProfit).Error
-
-	if err != nil && err != gorm.ErrRecordNotFound {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to check daily profit report", err)
-	}
-
-	if err == gorm.ErrRecordNotFound {
-		// Jika belum ada, buat entri baru
-		dailyProfitID := helpers.GenerateID("DPR")
-		dailyProfit = models.DailyProfitReport{
-			ID:             dailyProfitID,
-			ReportDate:     req.Sale.SaleDate,
-			UserID:         req.Sale.UserID,
-			BranchID:       req.Sale.BranchID,
-			TotalSales:     req.Sale.TotalSale,
-			ProfitEstimate: req.Sale.ProfitEstimate,
-			CreatedAt:      nowWIB,
-			UpdatedAt:      nowWIB,
+	err = applySaleQuotaIfNeeded(tx, subscriptionType, req.Sale.BranchID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return rollbackSaleWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", req.Sale.BranchID), err)
 		}
-		err = tx.Create(&dailyProfit).Error
-		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create daily profit report", err)
+		if err.Error() == "quota exceeded" {
+			return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, "No quota available for branch", nil)
 		}
-	} else {
-		// Jika sudah ada, update total_sales dan profit_estimate
-		dailyProfit.TotalSales += req.Sale.TotalSale
-		dailyProfit.ProfitEstimate += req.Sale.ProfitEstimate
-		dailyProfit.UpdatedAt = time.Now()
-		err = tx.Save(&dailyProfit).Error
-		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update daily profit report", err)
-		}
-	}
-
-	// b. Cek `subscription_type` jika type nya adalah `quota`
-	// maka setiap transaksi Sale tersebut akan mengurangi 1 jumlah pada kolom `quota` yang ada di tabel `branches`.
-	if subscriptionType == "quota" {
-		var branch models.Branch
-		err = tx.Where("id = ?", req.Sale.BranchID).First(&branch).Error
-		if err != nil {
-			tx.Rollback()
-			if err == gorm.ErrRecordNotFound {
-				return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", req.Sale.BranchID), err)
-			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve branch details for quota update", err)
-		}
-
-		if branch.Quota > 0 {
-			branch.Quota -= 1
-			err = tx.Save(&branch).Error
-			if err != nil {
-				tx.Rollback()
-				return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update quota for branch %s", branch.BranchName), err)
-			}
-		} else {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("No quota available for branch %s", branch.BranchName), nil)
-		}
+		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to apply quota for sale", err)
 	}
 
 	// c. Cek jika `member_id` diisi tidak sama dengan `defaultMember` yang kita ambil dari klaim token tersebut,
