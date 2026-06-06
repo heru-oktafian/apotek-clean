@@ -126,7 +126,7 @@ Pernah terjadi regression compile kecil saat refactor orchestration sale karena 
 
 ## 3. Duplicate Receipt
 
-Duplicate receipt sudah berhasil masuk ke pola refactor yang sama, walau kedalamannya masih di bawah purchase.
+Duplicate receipt sudah berhasil masuk ke pola refactor yang sama, dan sekarang kedalamannya sudah lebih baik dibanding checkpoint sebelumnya.
 
 ### Helper / perapihan yang sudah dilakukan
 Di `services/duplicate_receipt_service.go`:
@@ -152,11 +152,69 @@ Di `duplicate_receipt_handler.go`:
   - quota handling
 
 ### Hasil
-- create/delete duplicate receipt tetap lulus setelah wiring dan refactor orchestration
-- duplicate receipt sekarang sudah mulai punya bentuk yang sejalan dengan purchase dan sale
+- create/update/delete duplicate receipt tetap lulus setelah wiring dan refactor orchestration
+- duplicate receipt sekarang punya helper reusable untuk editability, totals, product lookup, stock validation, stock update, item preparation, dan orchestration
+- duplicate receipt sudah mulai punya bentuk yang sejalan dengan purchase dan sale tanpa menyatukan domain bisnisnya
 
 ### Catatan penting
 Sama seperti sale, sempat ada regression compile kecil karena `errors` belum diimport setelah refactor orchestration. Sudah diperbaiki dan dipush.
+
+
+## 4. Buy Return
+
+Buy return sekarang sudah memiliki fondasi refactor awal yang sehat.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/buy_return_service.go`:
+- `ParseBuyReturnDate(...)`
+- `SumBuyReturnSubTotal(...)`
+- `BuildBuyReturnStockReduction(...)`
+- `BuildBuyReturnResponse(...)`
+- `ValidateBuyReturnQuantity(...)`
+- `LookupBuyReturnPurchaseItem(...)`
+- `LookupBuyReturnReturnedQty(...)`
+
+Di `buy_return_handler.go`:
+- parsing tanggal dipisah
+- subtotal dipisah
+- actual qty reduction dipisah
+- lookup purchase item dan histori retur dipisah
+- rollback response helper dipusatkan
+- transaction report helper dipisah
+- quota helper dipisah
+
+### Hasil
+- create flow tetap lolos validasi domain yang benar
+- refactor buy return tidak mengubah rule qty retur
+- buy return sekarang sudah jauh lebih sejajar dengan pola purchase/sale/duplicate receipt
+
+## 5. Sale Return
+
+Sale return juga sudah berhasil masuk ke pola refactor awal yang sama dengan buy return.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/sale_return_service.go`:
+- `ParseSaleReturnDate(...)`
+- `SumSaleReturnSubTotal(...)`
+- `ValidateSaleReturnQuantity(...)`
+- `LookupSaleReturnSaleItem(...)`
+- `LookupSaleReturnReturnedQty(...)`
+- `BuildSaleReturnResponse(...)`
+
+Di `sale_return_handler.go`:
+- parsing tanggal dipisah
+- lookup sale item dan histori retur dipisah
+- validasi qty retur dipisah
+- subtotal dipisah
+- response akhir dipisah
+- rollback response helper dipusatkan
+- transaction report helper dipisah
+- quota helper dipisah
+
+### Hasil
+- create flow tetap lolos validasi domain yang benar
+- rule qty retur tetap aman
+- sale return sekarang sudah punya fondasi refactor yang kuat untuk fase berikutnya
 
 ## Pola kerja yang terbukti aman
 
@@ -198,13 +256,17 @@ Pelajaran:
 - masih bisa dirapikan lagi, terutama area orchestration lanjutan dan item flow yang lebih dalam
 
 ### Duplicate receipt
-- sudah punya fondasi refactor, tapi masih belum sedalam purchase
+- sudah cukup sehat dan jauh lebih rapi daripada titik awal
+
+### Buy return
+- sudah punya fondasi refactor kuat, tetapi masih belum sedalam purchase
+
+### Sale return
+- sudah punya fondasi refactor kuat, tetapi masih belum sedalam purchase
 
 ### Modul transaksi lain
 Belum masuk refactor mendalam fase ini:
 - first stock
-n- buy return
-- sale return
 - kemungkinan expense / another income untuk tahap service/usecase lebih lanjut jika diperlukan
 
 ## Rekomendasi tahap selanjutnya
@@ -216,15 +278,14 @@ Urutan yang disarankan setelah checkpoint ini:
 
 ### Rekomendasi prioritas
 Pilihan paling masuk akal setelah checkpoint ini:
-- lanjut pendalaman `sale`
-- atau mulai `first stock`
-- atau mulai `buy return` / `sale return`
+- mulai `first stock`
+- atau memperdalam `buy return` / `sale return` satu tingkat lagi bila dibutuhkan
 
-Jika ingin menyeimbangkan coverage transaksi, opsi yang paling masuk akal adalah:
-- lanjut ke `first stock` atau `buy return`
+Jika ingin menyeimbangkan coverage transaksi, opsi paling masuk akal sekarang adalah:
+- lanjut ke `first stock`
 
-Jika ingin menuntaskan pola sebelum pindah, opsi paling masuk akal adalah:
-- perdalam `sale` satu tingkat lagi
+Jika ingin menuntaskan pola sebelum pindah lebih jauh, opsi paling masuk akal adalah:
+- satu lapis pendalaman tambahan di `buy return` atau `sale return`
 
 ## Kesimpulan
 
