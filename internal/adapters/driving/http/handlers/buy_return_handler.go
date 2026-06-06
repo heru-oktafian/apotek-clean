@@ -95,26 +95,18 @@ func CreateBuyReturnTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("expired_date tidak valid untuk produk %s", item.ProductId), err.Error())
 		}
 
-		// Validasi item berasal dari purchase_id
-		// Ambil item pembelian untuk purchase_id + product_id
-		var buyItem models.PurchaseItems
-		err = tx.Where("purchase_id = ? AND product_id = ?", req.BuyReturn.PurchaseId, item.ProductId).First(&buyItem).Error
+		lookup, err := services.LookupBuyReturnPurchaseItem(tx, req.BuyReturn.PurchaseId, item.ProductId)
 		if err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Produk %s tidak ditemukan pada pembelian asal", item.ProductId), err.Error())
 		}
 
-		// Ambil total qty yang sudah diretur sebelumnya
-		var totalReturnedQty int64
-		err = tx.Model(&models.BuyReturnItems{}).
-			Select("COALESCE(SUM(qty), 0)").
-			Where("product_id = ? AND buy_return_id IN (SELECT id FROM buy_returns WHERE purchase_id = ?)", item.ProductId, req.BuyReturn.PurchaseId).
-			Scan(&totalReturnedQty).Error
-
+		totalReturnedQty, err := services.LookupBuyReturnReturnedQty(tx, req.BuyReturn.PurchaseId, item.ProductId)
 		if err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memeriksa retur sebelumnya", err.Error())
 		}
+		buyItem := lookup.PurchaseItem
 
 		if err := services.ValidateBuyReturnQuantity(buyItem.Qty, item.Qty, totalReturnedQty, item.ProductId); err != nil {
 			tx.Rollback()
