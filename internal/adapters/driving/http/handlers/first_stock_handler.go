@@ -15,6 +15,16 @@ import (
 	gorm "gorm.io/gorm"
 )
 
+func rollbackFirstStockWithJSON(c *fiber.Ctx, tx *gorm.DB, status int, message string, err error) error {
+	tx.Rollback()
+	return helpers.JSONResponse(c, status, message, err)
+}
+
+func ensureFirstStockBranchExists(tx *gorm.DB, branchID string) error {
+	var branch models.Branch
+	return tx.Where("id = ?", branchID).First(&branch).Error
+}
+
 // CreateFirstStock Function
 func CreateFirstStock(c *fiber.Ctx) error {
 
@@ -516,20 +526,18 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	for _, reqItem := range req.FirstStockItems {
 		parsedExpiredDate, err := time.Parse("2006-01-02", reqItem.ExpiredDate)
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, http.StatusBadRequest, fmt.Sprintf("Invalid expired_date format for product %s. Please use `YYYY-MM-DD`.", reqItem.ProductId), err)
+			return rollbackFirstStockWithJSON(c, tx, http.StatusBadRequest, fmt.Sprintf("Invalid expired_date format for product %s. Please use `YYYY-MM-DD`.", reqItem.ProductId), err)
 		}
 
 		lookup, err := services.LookupFirstStockDependencies(tx, firstStockHeader.BranchID, reqItem.ProductId, reqItem.UnitId)
 		if err != nil {
-			tx.Rollback()
 			if err == gorm.ErrRecordNotFound {
 				if tx.Where("id = ? AND branch_id = ?", reqItem.ProductId, firstStockHeader.BranchID).First(&models.Product{}).Error == nil {
-					return helpers.JSONResponse(c, http.StatusNotFound, fmt.Sprintf("Unit with ID %s not found", reqItem.UnitId), err)
+					return rollbackFirstStockWithJSON(c, tx, http.StatusNotFound, fmt.Sprintf("Unit with ID %s not found", reqItem.UnitId), err)
 				}
-				return helpers.JSONResponse(c, http.StatusNotFound, fmt.Sprintf("Product with ID %s not found in branch %s", reqItem.ProductId, firstStockHeader.BranchID), err)
+				return rollbackFirstStockWithJSON(c, tx, http.StatusNotFound, fmt.Sprintf("Product with ID %s not found in branch %s", reqItem.ProductId, firstStockHeader.BranchID), err)
 			}
-			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve first stock item dependencies", err)
+			return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to retrieve first stock item dependencies", err)
 		}
 
 		preparedItem := services.PrepareFirstStockItem(helpers.GenerateID("FSI"), firstStockHeader.ID, reqItem, lookup, parsedExpiredDate)
@@ -538,8 +546,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 
 		err = tx.Model(&models.Product{}).Where("id = ?", lookup.Product.ID).Updates(preparedItem.ProductUpdate).Error
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, http.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", lookup.Product.Name), err)
+			return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", lookup.Product.Name), err)
 		}
 
 		calculatedTotalFirstStock += preparedItem.SubTotal
@@ -550,15 +557,13 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	// Simpan data FirstStocks
 	err = tx.Create(&firstStockHeader).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to create first stock entry", err)
+		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to create first stock entry", err)
 	}
 
 	// Simpan FirstStockItems dalam batch
 	err = tx.CreateInBatches(&firstStockItemsToCreate, len(firstStockItemsToCreate)).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to create first stock items", err)
+		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to create first stock items", err)
 	}
 
 	// PENTING: TransactionReports dan DailyProfitReport TIDAK relevan untuk First Stock
@@ -570,16 +575,13 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	// Jika first stock harus mengurangi kuota (misal, setiap entri dianggap transaksi),
 	// Anda bisa menambahkan logika pengurangan kuota di sini.
 	if subscriptionType == "quota" {
-		var branch models.Branch
-		err = tx.Where("id = ?", firstStockHeader.BranchID).First(&branch).Error
+		err = ensureFirstStockBranchExists(tx, firstStockHeader.BranchID)
 		if err != nil {
-			tx.Rollback()
 			if err == gorm.ErrRecordNotFound {
-				return helpers.JSONResponse(c, http.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", firstStockHeader.BranchID), err)
+				return rollbackFirstStockWithJSON(c, tx, http.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", firstStockHeader.BranchID), err)
 			}
-			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve branch details for quota check", err)
+			return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to retrieve branch details for quota check", err)
 		}
-		// Logika pengurangan kuota dibiarkan kosong di sini, karena first stock tidak mengurangi kuota.
 	}
 
 	err = tx.Commit().Error
