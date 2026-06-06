@@ -154,7 +154,7 @@ func CreateBuyReturnTransaction(c *fiber.Ctx) error {
 			return rollbackBuyReturnWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal mengambil info produk untuk %s", item.ProductId), err.Error())
 		}
 
-		actualQtyToReduce := item.Qty
+		conversionValue := 1
 
 		// Lakukan konversi unit jika diperlukan
 		if buyItem.UnitId != product.UnitId {
@@ -163,35 +163,25 @@ func CreateBuyReturnTransaction(c *fiber.Ctx) error {
 				buyItem.ProductId, buyItem.UnitId, product.UnitId, branchID).First(&unitConv).Error
 
 			if err != nil {
-				if err == gorm.ErrRecordNotFound {
-					actualQtyToReduce = item.Qty
-				} else {
+				if err != gorm.ErrRecordNotFound {
 					return rollbackBuyReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal mengambil konversi satuan", err.Error())
 				}
-			} else {
-				actualQtyToReduce = item.Qty * unitConv.ValueConv
+			} else if unitConv.ValueConv > 0 {
+				conversionValue = unitConv.ValueConv
 			}
 		}
 
+		preparedItem := services.PrepareBuyReturnItem(helpers.GenerateID("BRI"), buyReturnID, item, buyItem.Price, conversionValue, parsedExpiredDate)
+
 		// Update stok
 		err = tx.Model(&models.Product{}).Where("id = ?", item.ProductId).
-			Update("stock", gorm.Expr("stock - ?", actualQtyToReduce)).Error
+			Update("stock", gorm.Expr("stock - ?", preparedItem.ActualQtyToReduce)).Error
 		if err != nil {
 			return rollbackBuyReturnWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", item.ProductId), err.Error())
 		}
 
-		subTotal := services.SumBuyReturnSubTotal(buyItem.Price, item.Qty)
-		totalReturn += subTotal
-
-		buyReturnItems = append(buyReturnItems, models.BuyReturnItems{
-			ID:          helpers.GenerateID("BRI"),
-			BuyReturnId: buyReturnID,
-			ProductId:   item.ProductId,
-			Price:       buyItem.Price,
-			Qty:         item.Qty,
-			SubTotal:    subTotal,
-			ExpiredDate: parsedExpiredDate,
-		})
+		totalReturn += preparedItem.SubTotal
+		buyReturnItems = append(buyReturnItems, preparedItem.BuyReturnItem)
 
 	}
 

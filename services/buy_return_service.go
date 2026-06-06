@@ -79,7 +79,7 @@ type PreparedBuyReturnItem struct {
 	SubTotal          int
 }
 
-func PrepareBuyReturnItem(itemID, buyReturnID string, item models.BuyReturnItemRequest, price int, conversionValue int, parsedExpiredDate time.Time) PreparedBuyReturnItem {
+func PrepareBuyReturnItem(itemID, buyReturnID string, item models.BuyReturnItemInput, price int, conversionValue int, parsedExpiredDate time.Time) PreparedBuyReturnItem {
 	reduction := BuildBuyReturnStockReduction(item.Qty, conversionValue)
 	subTotal := SumBuyReturnSubTotal(price, item.Qty)
 	return PreparedBuyReturnItem{
