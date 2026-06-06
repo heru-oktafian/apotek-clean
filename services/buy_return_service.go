@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
@@ -71,4 +72,28 @@ func LookupBuyReturnReturnedQty(db *gorm.DB, purchaseID, productID string) (int6
 		Where("br.purchase_id = ? AND bri.product_id = ?", purchaseID, productID).
 		Scan(&totalReturnedQty).Error
 	return totalReturnedQty, err
+}
+
+type PreparedBuyReturnItem struct {
+	BuyReturnItem     models.BuyReturnItems
+	ActualQtyToReduce int
+	SubTotal          int
+}
+
+func PrepareBuyReturnItem(buyReturnID string, item models.BuyReturnItemRequest, price int, conversionValue int, parsedExpiredDate time.Time) PreparedBuyReturnItem {
+	reduction := BuildBuyReturnStockReduction(item.Qty, conversionValue)
+	subTotal := SumBuyReturnSubTotal(price, item.Qty)
+	return PreparedBuyReturnItem{
+		BuyReturnItem: models.BuyReturnItems{
+			ID:          helpers.GenerateID("BRTI"),
+			BuyReturnId: buyReturnID,
+			ProductId:   item.ProductId,
+			Qty:         item.Qty,
+			Price:       price,
+			SubTotal:    subTotal,
+			ExpiredDate: parsedExpiredDate,
+		},
+		ActualQtyToReduce: reduction.ActualQtyToReduce,
+		SubTotal:          subTotal,
+	}
 }
