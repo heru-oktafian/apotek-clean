@@ -5,11 +5,11 @@ import (
 	strings "strings"
 	time "time"
 
-	fiber "github.com/gofiber/fiber/v2"
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	services "apotek-clean/services"
+	fiber "github.com/gofiber/fiber/v2"
 	gorm "gorm.io/gorm"
 )
 
@@ -47,14 +47,9 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 		}
 	}
 
-	var returnDate time.Time
-	if req.SaleReturn.ReturnDate == "" {
-		returnDate = nowWIB
-	} else {
-		returnDate, err = time.Parse("2006-01-02", req.SaleReturn.ReturnDate)
-		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format return_date tidak valid. Gunakan YYYY-MM-DD.", err.Error())
-		}
+	returnDate, err := services.ParseSaleReturnDate(req.SaleReturn.ReturnDate, nowWIB)
+	if err != nil {
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format return_date tidak valid. Gunakan YYYY-MM-DD.", err.Error())
 	}
 
 	tx := db.Begin()
@@ -100,29 +95,20 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("expired_date tidak valid untuk produk %s", item.ProductId), err.Error())
 		}
 
-		// Validasi item berasal dari sale_id
-		// Ambil item penjualan untuk sale_id + product_id
-		var saleItem models.SaleItems
-		err = tx.Where("sale_id = ? AND product_id = ?", req.SaleReturn.SaleId, item.ProductId).First(&saleItem).Error
+		lookup, err := services.LookupSaleReturnSaleItem(tx, req.SaleReturn.SaleId, item.ProductId)
 		if err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Produk %s tidak ditemukan pada penjualan asal", item.ProductId), err.Error())
 		}
 
-		// Ambil total qty yang sudah diretur sebelumnya
-		var totalReturnedQty int64
-		err = tx.Model(&models.SaleReturnItems{}).
-			Select("COALESCE(SUM(qty), 0)").
-			Where("product_id = ? AND sale_return_id IN (SELECT id FROM sale_returns WHERE sale_id = ?)", item.ProductId, req.SaleReturn.SaleId).
-			Scan(&totalReturnedQty).Error
-
+		totalReturnedQty, err := services.LookupSaleReturnReturnedQty(tx, req.SaleReturn.SaleId, item.ProductId)
 		if err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memeriksa retur sebelumnya", err.Error())
 		}
+		saleItem := lookup.SaleItem
 
-		// Validasi jika qty retur melebihi qty penjualan
-		if int(totalReturnedQty)+item.Qty > saleItem.Qty {
+		if err := services.ValidateSaleReturnQuantity(saleItem.Qty, item.Qty, totalReturnedQty, item.ProductId); err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Total qty retur untuk produk %s melebihi jumlah yang dijual. Dijual: %d, Sudah Diretur: %d, Retur Ini: %d",
 				item.ProductId, saleItem.Qty, totalReturnedQty, item.Qty), nil)
@@ -146,7 +132,7 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", item.ProductId), err.Error())
 		}
 
-		subTotal := saleItem.Price * item.Qty
+		subTotal := services.SumSaleReturnSubTotal(saleItem.Price, item.Qty)
 		totalReturn += subTotal
 
 		saleReturnItems = append(saleReturnItems, models.SaleReturnItems{
@@ -220,14 +206,9 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal melakukan commit transaksi", err.Error())
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Transaksi retur penjualan berhasil dibuat", fiber.Map{
-		"id":           saleReturn.ID,
-		"sale_id":      saleReturn.SaleId,
-		"return_date":  helpers.FormatIndonesianDate(saleReturn.ReturnDate),
-		"total_return": saleReturn.TotalReturn,
-		"payment":      saleReturn.Payment,
-		"items":        saleReturnItems,
-	})
+	response := services.BuildSaleReturnResponse(saleReturn, saleReturnItems)
+	response["return_date"] = helpers.FormatIndonesianDate(saleReturn.ReturnDate)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Transaksi retur penjualan berhasil dibuat", response)
 }
 
 // GetSaleItemsForReturn digunakan untuk mengambil item penjualan yang bisa diretur
