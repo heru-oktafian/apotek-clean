@@ -154,27 +154,17 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal mengambil info produk untuk %s", item.ProductId), err.Error())
 		}
 
-		actualQtyToReduce := item.Qty
+		preparedItem := services.PrepareSaleReturnItem(helpers.GenerateID("SRI"), saleReturnID, item, saleItem.Price, parsedExpiredDate)
 
 		// Update stok
 		err = tx.Model(&models.Product{}).Where("id = ?", item.ProductId).
-			Update("stock", gorm.Expr("stock + ?", actualQtyToReduce)).Error
+			Update("stock", gorm.Expr("stock + ?", preparedItem.ActualQtyToAdd)).Error
 		if err != nil {
 			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", item.ProductId), err.Error())
 		}
 
-		subTotal := services.SumSaleReturnSubTotal(saleItem.Price, item.Qty)
-		totalReturn += subTotal
-
-		saleReturnItems = append(saleReturnItems, models.SaleReturnItems{
-			ID:           helpers.GenerateID("SRI"),
-			SaleReturnId: saleReturnID,
-			ProductId:    item.ProductId,
-			Price:        saleItem.Price,
-			Qty:          item.Qty,
-			SubTotal:     subTotal,
-			ExpiredDate:  parsedExpiredDate,
-		})
+		totalReturn += preparedItem.SubTotal
+		saleReturnItems = append(saleReturnItems, preparedItem.SaleReturnItem)
 
 	}
 

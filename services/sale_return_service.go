@@ -56,3 +56,26 @@ func BuildSaleReturnResponse(saleReturn models.SaleReturns, items []models.SaleR
 		"items":        items,
 	}
 }
+
+type PreparedSaleReturnItem struct {
+	SaleReturnItem models.SaleReturnItems
+	ActualQtyToAdd int
+	SubTotal       int
+}
+
+func PrepareSaleReturnItem(itemID, saleReturnID string, item models.SaleReturnItemInput, price int, parsedExpiredDate time.Time) PreparedSaleReturnItem {
+	subTotal := SumSaleReturnSubTotal(price, item.Qty)
+	return PreparedSaleReturnItem{
+		SaleReturnItem: models.SaleReturnItems{
+			ID:           itemID,
+			SaleReturnId: saleReturnID,
+			ProductId:    item.ProductId,
+			Price:        price,
+			Qty:          item.Qty,
+			SubTotal:     subTotal,
+			ExpiredDate:  parsedExpiredDate,
+		},
+		ActualQtyToAdd: item.Qty,
+		SubTotal:       subTotal,
+	}
+}
