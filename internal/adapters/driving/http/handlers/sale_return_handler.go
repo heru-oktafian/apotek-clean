@@ -13,6 +13,44 @@ import (
 	gorm "gorm.io/gorm"
 )
 
+func rollbackSaleReturnWithJSON(c *fiber.Ctx, tx *gorm.DB, status int, message string, err interface{}) error {
+	tx.Rollback()
+	return helpers.JSONResponse(c, status, message, err)
+}
+
+func createSaleReturnTransactionReport(tx *gorm.DB, saleReturn models.SaleReturns, userID, branchID string, nowWIB time.Time) error {
+	transactionReport := models.TransactionReports{
+		ID:              helpers.GenerateID("TRX"),
+		TransactionType: models.SaleReturn,
+		UserID:          userID,
+		BranchID:        branchID,
+		Total:           saleReturn.TotalReturn,
+		Payment:         saleReturn.Payment,
+		CreatedAt:       nowWIB,
+		UpdatedAt:       nowWIB,
+	}
+	return tx.Create(&transactionReport).Error
+}
+
+func applySaleReturnQuotaIfNeeded(tx *gorm.DB, subscriptionType, branchID string) error {
+	if subscriptionType != "quota" {
+		return nil
+	}
+
+	var branch models.Branch
+	err := tx.Where("id = ?", branchID).First(&branch).Error
+	if err != nil {
+		return err
+	}
+
+	if branch.Quota <= 0 {
+		return fmt.Errorf("quota exhausted")
+	}
+
+	branch.Quota -= 1
+	return tx.Save(&branch).Error
+}
+
 // CreateSaleReturnTransaction adalah fungsi untuk membuat transaksi retur penjualan baru
 func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 	nowWIB := time.Now().In(configs.Location)
@@ -66,11 +104,10 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 	var sale models.Sales
 	err = tx.Where("id = ?", req.SaleReturn.SaleId).First(&sale).Error
 	if err != nil {
-		tx.Rollback()
 		if err == gorm.ErrRecordNotFound {
-			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Penjualan dengan ID %s tidak ditemukan", req.SaleReturn.SaleId), err.Error())
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Penjualan dengan ID %s tidak ditemukan", req.SaleReturn.SaleId), err.Error())
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil data penjualan", err.Error())
+		return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal mengambil data penjualan", err.Error())
 	}
 
 	saleReturnID := helpers.GenerateID("SRT")
@@ -91,26 +128,22 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 	for _, item := range req.SaleReturnItems {
 		parsedExpiredDate, err := time.Parse("2006-01-02", item.ExpiredDate)
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("expired_date tidak valid untuk produk %s", item.ProductId), err.Error())
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("expired_date tidak valid untuk produk %s", item.ProductId), err.Error())
 		}
 
 		lookup, err := services.LookupSaleReturnSaleItem(tx, req.SaleReturn.SaleId, item.ProductId)
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Produk %s tidak ditemukan pada penjualan asal", item.ProductId), err.Error())
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("Produk %s tidak ditemukan pada penjualan asal", item.ProductId), err.Error())
 		}
 
 		totalReturnedQty, err := services.LookupSaleReturnReturnedQty(tx, req.SaleReturn.SaleId, item.ProductId)
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memeriksa retur sebelumnya", err.Error())
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal memeriksa retur sebelumnya", err.Error())
 		}
 		saleItem := lookup.SaleItem
 
 		if err := services.ValidateSaleReturnQuantity(saleItem.Qty, item.Qty, totalReturnedQty, item.ProductId); err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Total qty retur untuk produk %s melebihi jumlah yang dijual. Dijual: %d, Sudah Diretur: %d, Retur Ini: %d",
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("Total qty retur untuk produk %s melebihi jumlah yang dijual. Dijual: %d, Sudah Diretur: %d, Retur Ini: %d",
 				item.ProductId, saleItem.Qty, totalReturnedQty, item.Qty), nil)
 		}
 
@@ -118,8 +151,7 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 		var product models.Product
 		err = tx.Where("id = ?", item.ProductId).First(&product).Error
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Gagal mengambil info produk untuk %s", item.ProductId), err.Error())
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal mengambil info produk untuk %s", item.ProductId), err.Error())
 		}
 
 		actualQtyToReduce := item.Qty
@@ -128,8 +160,7 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 		err = tx.Model(&models.Product{}).Where("id = ?", item.ProductId).
 			Update("stock", gorm.Expr("stock + ?", actualQtyToReduce)).Error
 		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", item.ProductId), err.Error())
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", item.ProductId), err.Error())
 		}
 
 		subTotal := services.SumSaleReturnSubTotal(saleItem.Price, item.Qty)
@@ -151,54 +182,28 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 
 	err = tx.Create(&saleReturn).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat retur penjualan", err.Error())
+		return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat retur penjualan", err.Error())
 	}
 
 	err = tx.CreateInBatches(&saleReturnItems, len(saleReturnItems)).Error
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat item retur penjualan", err.Error())
+		return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat item retur penjualan", err.Error())
 	}
 
-	// Tambahkan ke laporan transaksi
-	transactionReportID := helpers.GenerateID("TRX")
-	transactionReport := models.TransactionReports{
-		ID:              transactionReportID,
-		TransactionType: models.SaleReturn,
-		UserID:          userID,
-		BranchID:        branchID,
-		Total:           saleReturn.TotalReturn,
-		Payment:         saleReturn.Payment,
-		CreatedAt:       nowWIB,
-		UpdatedAt:       nowWIB,
-	}
-	err = tx.Create(&transactionReport).Error
+	err = createSaleReturnTransactionReport(tx, saleReturn, userID, branchID, nowWIB)
 	if err != nil {
-		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat laporan transaksi retur penjualan", err.Error())
+		return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat laporan transaksi retur penjualan", err.Error())
 	}
 
-	// Kurangi kuota jika berlangganan quota
-	if subscriptionType == "quota" {
-		var branch models.Branch
-		err = tx.Where("id = ?", branchID).First(&branch).Error
-		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil info cabang untuk kuota", err.Error())
+	err = applySaleReturnQuotaIfNeeded(tx, subscriptionType, branchID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal mengambil info cabang untuk kuota", err.Error())
 		}
-
-		if branch.Quota > 0 {
-			branch.Quota -= 1
-			err = tx.Save(&branch).Error
-			if err != nil {
-				tx.Rollback()
-				return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui kuota cabang", err.Error())
-			}
-		} else {
-			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Kuota cabang sudah habis", nil)
+		if err.Error() == "quota exhausted" {
+			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusBadRequest, "Kuota cabang sudah habis", nil)
 		}
+		return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal memperbarui kuota cabang", err.Error())
 	}
 
 	err = tx.Commit().Error
