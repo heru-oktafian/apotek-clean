@@ -520,102 +520,29 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, http.StatusBadRequest, fmt.Sprintf("Invalid expired_date format for product %s. Please use `YYYY-MM-DD`.", reqItem.ProductId), err)
 		}
 
-		var product models.Product
-		err = tx.Where("id = ? AND branch_id = ?", reqItem.ProductId, firstStockHeader.BranchID).First(&product).Error
+		lookup, err := services.LookupFirstStockDependencies(tx, firstStockHeader.BranchID, reqItem.ProductId, reqItem.UnitId)
 		if err != nil {
 			tx.Rollback()
 			if err == gorm.ErrRecordNotFound {
+				if tx.Where("id = ? AND branch_id = ?", reqItem.ProductId, firstStockHeader.BranchID).First(&models.Product{}).Error == nil {
+					return helpers.JSONResponse(c, http.StatusNotFound, fmt.Sprintf("Unit with ID %s not found", reqItem.UnitId), err)
+				}
 				return helpers.JSONResponse(c, http.StatusNotFound, fmt.Sprintf("Product with ID %s not found in branch %s", reqItem.ProductId, firstStockHeader.BranchID), err)
 			}
-			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve product details", err)
+			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve first stock item dependencies", err)
 		}
 
-		// Mendapatkan detail unit (sesuai unit_id yang diinput)
-		var unit models.Unit
-		err = tx.Where("id = ?", reqItem.UnitId).First(&unit).Error
+		preparedItem := services.PrepareFirstStockItem(helpers.GenerateID("FSI"), firstStockHeader.ID, reqItem, lookup, parsedExpiredDate)
+		firstStockItemsToCreate = append(firstStockItemsToCreate, preparedItem.Item)
+		firstStockItemsForResponse = append(firstStockItemsForResponse, preparedItem.Response)
+
+		err = tx.Model(&models.Product{}).Where("id = ?", lookup.Product.ID).Updates(preparedItem.ProductUpdate).Error
 		if err != nil {
 			tx.Rollback()
-			if err == gorm.ErrRecordNotFound {
-				return helpers.JSONResponse(c, http.StatusNotFound, fmt.Sprintf("Unit with ID %s not found", reqItem.UnitId), err)
-			}
-			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve unit details", err)
+			return helpers.JSONResponse(c, http.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", lookup.Product.Name), err)
 		}
 
-		// --- Logika Konversi Satuan ---
-		var conversionValue int = 1
-		if reqItem.UnitId != product.UnitId { // Jika unit input berbeda dengan unit dasar produk
-			var unitConversion models.UnitConversion
-			err = tx.Where("product_id = ? AND init_id = ? AND final_id = ? AND branch_id = ?",
-				reqItem.ProductId,
-				reqItem.UnitId, // Unit yang diinput
-				product.UnitId, // Unit dasar produk
-				firstStockHeader.BranchID,
-			).First(&unitConversion).Error
-
-			if err != nil {
-				if err == gorm.ErrRecordNotFound {
-					// Jika tidak ada konversi yang didefinisikan, asumsikan 1:1 atau unit dasar.
-					// Anda bisa menambahkan error di sini jika konversi mutlak diperlukan.
-					// Saat ini dibiarkan conversionValue = 1
-				} else {
-					tx.Rollback()
-					return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve unit conversion details", err)
-				}
-			} else {
-				conversionValue = unitConversion.ValueConv
-			}
-		}
-		actualQtyToAdd := reqItem.Qty * conversionValue // Kuantitas aktual dalam satuan dasar
-		// --- Akhir Logika Konversi Satuan ---
-
-		// Harga untuk First Stock Items diambil dari PurchasePrice produk
-		// Ini merepresentasikan "nilai" dari stok yang masuk, bukan biaya.
-		itemPrice := product.PurchasePrice         // Harga beli per unit dasar produk
-		itemSubTotal := itemPrice * actualQtyToAdd // SubTotal berdasarkan harga beli dan kuantitas aktual
-
-		firstStockItemDB := models.FirstStockItems{
-			ID:           helpers.GenerateID("FSI"), // ID untuk First Stock Item
-			FirstStockId: firstStockHeader.ID,
-			ProductId:    reqItem.ProductId,
-			Price:        itemPrice,    // Price dari PurchasePrice produk
-			Qty:          reqItem.Qty,  // Qty yang diinput (dalam unit yang diinput)
-			SubTotal:     itemSubTotal, // SubTotal yang dihitung
-			ExpiredDate:  parsedExpiredDate,
-		}
-		firstStockItemsToCreate = append(firstStockItemsToCreate, firstStockItemDB)
-
-		// --- Siapkan data untuk respons ---
-		firstStockItemResp := models.FirstStockItemResponse{
-			ID:          firstStockItemDB.ID,
-			ProductID:   firstStockItemDB.ProductId,
-			ProductName: product.Name,
-			UnitID:      reqItem.UnitId, // Unit yang diinput
-			UnitName:    unit.Name,
-			Price:       firstStockItemDB.Price,
-			Qty:         firstStockItemDB.Qty,
-			SubTotal:    firstStockItemDB.SubTotal,
-			ExpiredDate: parsedExpiredDate.Format("02 January 2006"), // Format tanggal
-		}
-		firstStockItemsForResponse = append(firstStockItemsForResponse, firstStockItemResp)
-		// --- Akhir persiapan data respons ---
-
-		// --- Tambah stok dan cek/update expired_date ---
-		updates := map[string]interface{}{
-			"stock": product.Stock + actualQtyToAdd, // Tambahkan stok aktual (dalam satuan dasar)
-		}
-
-		// Jika ExpiredDate stok baru lebih awal dari yang sudah ada di master produk, update.
-		if parsedExpiredDate.Before(product.ExpiredDate) {
-			updates["expired_date"] = parsedExpiredDate
-		}
-
-		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Updates(updates).Error
-		if err != nil {
-			tx.Rollback()
-			return helpers.JSONResponse(c, http.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", product.Name), err)
-		}
-
-		calculatedTotalFirstStock += itemSubTotal // Ini adalah nilai total stok yang dimasukkan
+		calculatedTotalFirstStock += preparedItem.SubTotal
 	}
 
 	firstStockHeader.TotalFirstStock = calculatedTotalFirstStock
