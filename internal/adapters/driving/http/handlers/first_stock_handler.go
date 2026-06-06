@@ -25,6 +25,20 @@ func ensureFirstStockBranchExists(tx *gorm.DB, branchID string) error {
 	return tx.Where("id = ?", branchID).First(&branch).Error
 }
 
+func applyFirstStockQuotaIfNeeded(tx *gorm.DB, subscriptionType, branchID string) error {
+	if subscriptionType != "quota" {
+		return nil
+	}
+	return ensureFirstStockBranchExists(tx, branchID)
+}
+
+func finalizeFirstStockTransaction(tx *gorm.DB, firstStock models.FirstStocks, subscriptionType string) error {
+	if err := applyFirstStockQuotaIfNeeded(tx, subscriptionType, firstStock.BranchID); err != nil {
+		return err
+	}
+	return tx.Commit().Error
+}
+
 // CreateFirstStock Function
 func CreateFirstStock(c *fiber.Ctx) error {
 
@@ -570,23 +584,12 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	// Karena ini bukan transaksi finansial atau penjualan/pembelian berbiaya,
 	// bagian untuk membuat TransactionReports atau mengupdate DailyProfitReport dihapus.
 
-	// Cek `subscription_type` jika type nya adalah `quota`
-	// Asumsi: First Stock TIDAK mengurangi kuota transaksi.
-	// Jika first stock harus mengurangi kuota (misal, setiap entri dianggap transaksi),
-	// Anda bisa menambahkan logika pengurangan kuota di sini.
-	if subscriptionType == "quota" {
-		err = ensureFirstStockBranchExists(tx, firstStockHeader.BranchID)
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return rollbackFirstStockWithJSON(c, tx, http.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", firstStockHeader.BranchID), err)
-			}
-			return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to retrieve branch details for quota check", err)
-		}
-	}
-
-	err = tx.Commit().Error
+	err = finalizeFirstStockTransaction(tx, firstStockHeader, subscriptionType)
 	if err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to commit database transaction for first stock", err)
+		if err == gorm.ErrRecordNotFound {
+			return rollbackFirstStockWithJSON(c, tx, http.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", firstStockHeader.BranchID), err)
+		}
+		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to finalize first stock transaction", err)
 	}
 
 	// --- Mengkonstruksi Objek Respon ---
