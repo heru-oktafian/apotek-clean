@@ -162,7 +162,7 @@ Sama seperti sale, sempat ada regression compile kecil karena `errors` belum dii
 
 ## 4. Buy Return
 
-Buy return sekarang sudah memiliki fondasi refactor awal yang sehat.
+Buy return sekarang sudah mencapai fase yang jauh lebih matang dan kualitasnya sudah sejajar dengan modul transaksi utama lain.
 
 ### Helper / perapihan yang sudah dilakukan
 Di `services/buy_return_service.go`:
@@ -186,11 +186,12 @@ Di `buy_return_handler.go`:
 ### Hasil
 - create flow tetap lolos validasi domain yang benar
 - refactor buy return tidak mengubah rule qty retur
-- buy return sekarang sudah jauh lebih sejajar dengan pola purchase/sale/duplicate receipt
+- buy return sekarang sudah memiliki helper dasar, loop item yang sudah dibersihkan, rollback yang terpusat, dan orchestration yang rapi
+- buy return sudah layak dianggap hijau penuh untuk fase ini
 
 ## 5. Sale Return
 
-Sale return juga sudah berhasil masuk ke pola refactor awal yang sama dengan buy return.
+Sale return juga sudah berhasil mencapai kualitas yang sejajar dengan buy return.
 
 ### Helper / perapihan yang sudah dilakukan
 Di `services/sale_return_service.go`:
@@ -214,7 +215,37 @@ Di `sale_return_handler.go`:
 ### Hasil
 - create flow tetap lolos validasi domain yang benar
 - rule qty retur tetap aman
-- sale return sekarang sudah punya fondasi refactor yang kuat untuk fase berikutnya
+- sale return sekarang sudah memiliki helper dasar, loop item yang lebih rapi, rollback terpusat, dan orchestration yang konsisten
+- sale return sudah layak dianggap hijau penuh untuk fase ini
+
+
+## 6. First Stock
+
+First stock sekarang sudah berhasil didorong sampai kualitasnya sejajar dengan modul transaksi utama lain.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/first_stock_service.go`:
+- `EnsureFirstStockEditable(...)`
+- `ErrFirstStockDataExpiredToEdit`
+- `ParseFirstStockDate(...)`
+- `SumFirstStockItems(...)`
+- `LookupFirstStockDependencies(...)`
+- `PrepareFirstStockItem(...)`
+
+Di `first_stock_handler.go`:
+- parsing tanggal dipisah
+- sum total dipisah
+- lookup dependency item dipisah
+- item preparation dipisah
+- rollback response helper dipusatkan
+- transaction finalization helper dipisah
+- quota/branch finalization dipisah
+
+### Hasil
+- create/delete first stock tetap lulus
+- response detail dan item tetap sehat
+- first stock sekarang sudah memiliki helper dasar, loop item yang bersih, rollback terpusat, dan orchestration yang rapi
+- first stock sudah layak dianggap hijau penuh untuk fase ini
 
 ## Pola kerja yang terbukti aman
 
@@ -259,14 +290,16 @@ Pelajaran:
 - sudah cukup sehat dan jauh lebih rapi daripada titik awal
 
 ### Buy return
-- sudah punya fondasi refactor kuat, tetapi masih belum sedalam purchase
+- kualitasnya sekarang sudah sejajar dengan modul transaksi utama lain untuk fase ini
 
 ### Sale return
-- sudah punya fondasi refactor kuat, tetapi masih belum sedalam purchase
+- kualitasnya sekarang sudah sejajar dengan modul transaksi utama lain untuk fase ini
+
+### First stock
+- kualitasnya sekarang sudah sejajar dengan modul transaksi utama lain untuk fase ini
 
 ### Modul transaksi lain
 Belum masuk refactor mendalam fase ini:
-- first stock
 - kemungkinan expense / another income untuk tahap service/usecase lebih lanjut jika diperlukan
 
 ## Rekomendasi tahap selanjutnya
@@ -277,23 +310,21 @@ Urutan yang disarankan setelah checkpoint ini:
 3. pertimbangkan kapan mulai mengekstrak helper lokal menjadi service/usecase yang lebih resmi
 
 ### Rekomendasi prioritas
-Pilihan paling masuk akal setelah checkpoint ini:
-- mulai `first stock`
-- atau memperdalam `buy return` / `sale return` satu tingkat lagi bila dibutuhkan
+Karena modul transaksi utama sekarang sudah relatif merata kualitas refactornya, pilihan paling masuk akal berikutnya adalah:
+- lanjut ke fitur/menu lain di luar transaksi utama
+- atau mulai cleanup / normalisasi layer jika memang diperlukan
 
-Jika ingin menyeimbangkan coverage transaksi, opsi paling masuk akal sekarang adalah:
-- lanjut ke `first stock`
-
-Jika ingin menuntaskan pola sebelum pindah lebih jauh, opsi paling masuk akal adalah:
-- satu lapis pendalaman tambahan di `buy return` atau `sale return`
+Jika ingin melanjutkan coverage, kandidat berikutnya bisa berupa:
+- expense / another income untuk penyamaan pola internal lebih lanjut
+- modul non-transaksional yang masih memiliki handler besar
 
 ## Kesimpulan
 
 Fase ini berhasil menghasilkan tiga hal penting:
 1. runtime baseline yang kuat
 2. pola refactor incremental yang terbukti aman
-3. tiga modul transaksi utama yang mulai terkonsolidasi ke pola yang sama: purchase, sale, duplicate receipt
+3. hampir seluruh modul transaksi utama yang sudah disentuh kini mencapai kualitas refactor yang lebih merata: purchase, sale, duplicate receipt, buy return, sale return, dan first stock
 
-Purchase saat ini adalah template refactor paling matang.
-Sale berada di jalur yang benar.
-Duplicate receipt sudah berhasil masuk ke jalur yang sama.
+Purchase tetap menjadi template refactor paling matang.
+Sale dan duplicate receipt sudah mengikuti pola yang stabil.
+Buy return, sale return, dan first stock kini sudah berhasil didorong ke level kualitas yang sebanding untuk fase ini.
