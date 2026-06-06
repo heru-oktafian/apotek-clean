@@ -7,11 +7,11 @@ import (
 	strings "strings"
 	time "time"
 
-	fiber "github.com/gofiber/fiber/v2"
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	services "apotek-clean/services"
+	fiber "github.com/gofiber/fiber/v2"
 	gorm "gorm.io/gorm"
 )
 
@@ -34,9 +34,7 @@ func CreateFirstStock(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid input", err)
 	}
 
-	// Parse tanggal
-	layout := "2006-01-02" // format harus YYYY-MM-DD
-	parsedDate, err := time.Parse(layout, input.FirstStockDate)
+	parsedDate, err := services.ParseFirstStockDate(input.FirstStockDate, nowWIB)
 	if err != nil {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err.Error())
 	}
@@ -87,10 +85,8 @@ func UpdateFirstStock(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid input", err)
 	}
 
-	// Cek dan update FirstStockDate
 	if input.FirstStockDate != "" {
-		layout := "2006-01-02"
-		parsedDate, err := time.Parse(layout, input.FirstStockDate)
+		parsedDate, err := services.ParseFirstStockDate(input.FirstStockDate, nowWIB)
 		if err != nil {
 			return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
 		}
@@ -110,15 +106,7 @@ func UpdateFirstStock(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve FirstStock items", err)
 	}
 
-	if len(items) == 0 {
-		first_stock.TotalFirstStock = 0
-	} else {
-		total := 0
-		for _, item := range items {
-			total += item.SubTotal
-		}
-		first_stock.TotalFirstStock = total
-	}
+	first_stock.TotalFirstStock = services.SumFirstStockItems(items)
 
 	// Cek dan update Description
 	if input.Description != "" {
