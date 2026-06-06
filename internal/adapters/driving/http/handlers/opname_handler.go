@@ -8,11 +8,11 @@ import (
 	strings "strings"
 	time "time"
 
-	fiber "github.com/gofiber/fiber/v2"
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	services "apotek-clean/services"
+	fiber "github.com/gofiber/fiber/v2"
 	gorm "gorm.io/gorm"
 )
 
@@ -31,18 +31,7 @@ func GetAllMobileOpnames(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Pengambilan opnames gagal", "Gagal mengambil data Opname")
 	}
 
-	// Inisialisasi slice untuk hasil akhir yang diformat
-	var formattedOpnames []models.AllOpnameMobiles
-
-	// Iterasi hasil query mentah dan format opname_date
-	for _, op := range rawOpnames {
-		formattedOpnames = append(formattedOpnames, models.AllOpnameMobiles{
-			ID:          op.ID,
-			Description: op.Description,
-			OpnameDate:  helpers.FormatIndonesianDate(op.OpnameDate),
-			TotalOpname: op.TotalOpname,
-		})
-	}
+	formattedOpnames := services.FormatMobileOpnameRows(rawOpnames)
 
 	return helpers.JSONResponse(c, http.StatusOK, "Data opname berhasil diambil", formattedOpnames)
 }
@@ -62,18 +51,7 @@ func GetAllActiveMobileOpnames(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Pengambilan Opname gagal", "Gagal mengambil data Opname")
 	}
 
-	// Inisialisasi slice untuk hasil akhir yang diformat
-	var formattedOpnames []models.AllOpnameMobiles
-
-	// Iterasi hasil query mentah dan format opname_date
-	for _, op := range rawOpnames {
-		formattedOpnames = append(formattedOpnames, models.AllOpnameMobiles{
-			ID:          op.ID,
-			Description: op.Description,
-			OpnameDate:  helpers.FormatIndonesianDate(op.OpnameDate), // <--- Gunakan helper di sini!
-			TotalOpname: op.TotalOpname,
-		})
-	}
+	formattedOpnames := services.FormatMobileOpnameRows(rawOpnames)
 
 	return helpers.JSONResponse(c, http.StatusOK, "Data opname berhasil diambil", formattedOpnames)
 }
@@ -218,9 +196,7 @@ func CreateOpname(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Input tidak valid", err)
 	}
 
-	// Parse tanggal
-	layout := "2006-01-02" // format harus YYYY-MM-DD
-	parsedDate, err := time.Parse(layout, input.OpnameDate)
+	parsedDate, err := services.ParseOpnameDate(input.OpnameDate, nowWIB)
 	if err != nil {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 	}
