@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
@@ -80,12 +79,12 @@ type PreparedBuyReturnItem struct {
 	SubTotal          int
 }
 
-func PrepareBuyReturnItem(buyReturnID string, item models.BuyReturnItemRequest, price int, conversionValue int, parsedExpiredDate time.Time) PreparedBuyReturnItem {
+func PrepareBuyReturnItem(itemID, buyReturnID string, item models.BuyReturnItemRequest, price int, conversionValue int, parsedExpiredDate time.Time) PreparedBuyReturnItem {
 	reduction := BuildBuyReturnStockReduction(item.Qty, conversionValue)
 	subTotal := SumBuyReturnSubTotal(price, item.Qty)
 	return PreparedBuyReturnItem{
 		BuyReturnItem: models.BuyReturnItems{
-			ID:          helpers.GenerateID("BRTI"),
+			ID:          itemID,
 			BuyReturnId: buyReturnID,
 			ProductId:   item.ProductId,
 			Qty:         item.Qty,
