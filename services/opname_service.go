@@ -55,3 +55,16 @@ func PrepareOpnameItem(itemID string, input models.CreateOpnameItemInput, snapsh
 	}
 	return PreparedOpnameItem{Item: item, ProductUpdates: updates}
 }
+
+type PreparedOpnameItemUpdate struct {
+	ParsedDate time.Time
+	SubTotal   int
+}
+
+func PrepareOpnameItemUpdate(expiredDate string, price, qty int) (PreparedOpnameItemUpdate, error) {
+	parsedDate, err := ParseOpnameItemDate(expiredDate)
+	if err != nil {
+		return PreparedOpnameItemUpdate{}, err
+	}
+	return PreparedOpnameItemUpdate{ParsedDate: parsedDate, SubTotal: price * qty}, nil
+}

@@ -528,17 +528,16 @@ func UpdateOpnameItemByID(c *fiber.Ctx) error {
 	services.AddProductStockAsync(db, updatedItem.ProductId, updatedItem.Qty)
 
 	// Update item
-	existingItem.ProductId = updatedItem.ProductId
-	existingItem.Qty = updatedItem.Qty
-	existingItem.Price = updatedItem.Price
-	existingItem.SubTotal = updatedItem.Price * updatedItem.Qty
-
-	layout := "2006-01-02"
-	parsedDate, err := time.Parse(layout, updatedItem.ExpiredDate)
+	preparedUpdate, err := services.PrepareOpnameItemUpdate(updatedItem.ExpiredDate, updatedItem.Price, updatedItem.Qty)
 	if err != nil {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 	}
-	existingItem.ExpiredDate = parsedDate
+
+	existingItem.ProductId = updatedItem.ProductId
+	existingItem.Qty = updatedItem.Qty
+	existingItem.Price = updatedItem.Price
+	existingItem.SubTotal = preparedUpdate.SubTotal
+	existingItem.ExpiredDate = preparedUpdate.ParsedDate
 
 	if err := db.Save(&existingItem).Error; err != nil {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menyimpan item: "+err.Error(), err)
@@ -546,7 +545,7 @@ func UpdateOpnameItemByID(c *fiber.Ctx) error {
 
 	// Update expired date dan stock produk sesuai inputan
 	if err := db.Model(&models.Product{}).Where("id = ?", updatedItem.ProductId).Updates(map[string]interface{}{
-		"expired_date": parsedDate,
+		"expired_date": preparedUpdate.ParsedDate,
 		"stock":        updatedItem.Qty,
 	}).Error; err != nil {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui produk: "+err.Error(), err)
