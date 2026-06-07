@@ -102,17 +102,17 @@ func (h *UserBranchHandler) GetUserDetails(c *fiber.Ctx) error {
 		}
 	}
 	type BranchResponse struct {
-		BranchID string `json:"branch_id"`
+		BranchID   string `json:"branch_id"`
 		BranchName string `json:"branch_name"`
-		Address string `json:"address"`
-		Phone string `json:"phone"`
+		Address    string `json:"address"`
+		Phone      string `json:"phone"`
 	}
 	var branchResponses []BranchResponse
 	for _, b := range branches {
 		branchResponses = append(branchResponses, BranchResponse{BranchID: b.ID, BranchName: b.BranchName, Address: b.Address, Phone: b.Phone})
 	}
 	type GetUserResponse struct {
-		User models.User `json:"user"`
+		User           models.User      `json:"user"`
 		DetailBranches []BranchResponse `json:"detail_branches"`
 	}
 	response := GetUserResponse{User: user, DetailBranches: branchResponses}
