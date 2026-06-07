@@ -1,6 +1,13 @@
 package services
 
-import "time"
+import (
+	"errors"
+	"time"
+
+	gorm "gorm.io/gorm"
+)
+
+var ErrAnotherIncomeDataExpiredToEdit = errors.New("data tidak bisa diedit karena sudah tersimpan lebih dari 1 jam")
 
 func ParseAnotherIncomeDate(inputDate string, fallback time.Time) (time.Time, error) {
 	if inputDate == "" {
@@ -14,4 +21,15 @@ func NormalizeAnotherIncomePayment(current, incoming string) string {
 		return current
 	}
 	return incoming
+}
+
+func EnsureAnotherIncomeEditable(db *gorm.DB, incomeID string) error {
+	editable, err := IsEditable(db, "another_incomes", incomeID, 1*time.Hour)
+	if err != nil {
+		return err
+	}
+	if !editable {
+		return ErrAnotherIncomeDataExpiredToEdit
+	}
+	return nil
 }
