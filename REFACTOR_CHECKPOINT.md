@@ -337,6 +337,47 @@ Di `report_handler.go`:
 - `GET /api/report/profit-by-month?month=YYYY-MM` tervalidasi runtime
 - report saat ini dianggap cukup sehat untuk fase sekarang dan tidak perlu dibongkar lebih jauh dulu
 
+
+## 11. Expense
+
+Expense sekarang sudah mulai punya fondasi refactor kecil yang aman dan cukup sehat untuk modul cashflow ringan.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/expense_service.go`:
+- `ParseExpenseDate(...)`
+- `NormalizeExpensePayment(...)`
+
+Di `expense_handler.go`:
+- parsing tanggal dipisah
+- normalisasi payment update dipisah agar nilai kosong tidak overwrite payment lama
+
+### Hasil
+- `POST /api/expenses` tervalidasi runtime
+- `PUT /api/expenses/:id` tervalidasi runtime
+- bug lama terkait overwrite payment kosong tetap terjaga agar tidak kembali muncul
+
+## 12. Another Income
+
+Another income sekarang juga sudah mulai masuk ke pola refactor ringan yang sama dengan expense, bahkan sedikit lebih rapi.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/another_income_service.go`:
+- `ParseAnotherIncomeDate(...)`
+- `NormalizeAnotherIncomePayment(...)`
+- `EnsureAnotherIncomeEditable(...)`
+- `ErrAnotherIncomeDataExpiredToEdit`
+
+Di `another_income_handler.go`:
+- parsing tanggal dipisah
+- normalisasi payment update dipisah
+- editability check dipisah ke helper reusable
+
+### Hasil
+- `POST /api/another-incomes` tervalidasi runtime
+- `PUT /api/another-incomes/:id` tervalidasi runtime
+- `DELETE /api/another-incomes/:id` tervalidasi runtime
+- another income sekarang cukup sehat dan kualitasnya sudah seimbang dengan expense untuk fase ini
+
 ## Pola kerja yang terbukti aman
 
 Pola refactor yang terbukti paling aman selama fase ini:
@@ -395,7 +436,7 @@ Mulai disentuh:
 ### Modul yang masih bisa diperdalam berikutnya
 - dashboard (jika suatu saat perlu cleanup ringan)
 - daily asset (jika ingin diteruskan lebih dalam)
-- expense / another income jika ingin pola internal lebih seragam
+- expense / another income (jika ingin dibuat satu tingkat lebih seragam lagi)
 - modul non-transaksional lain yang masih belum tersentuh
 
 ## Rekomendasi tahap selanjutnya
@@ -411,8 +452,8 @@ Karena modul transaksi utama sekarang sudah relatif merata kualitas refactornya,
 - atau mulai cleanup / normalisasi layer jika memang diperlukan
 
 Jika ingin melanjutkan coverage, kandidat berikutnya bisa berupa:
-- expense / another income untuk penyamaan pola internal lebih lanjut
 - modul non-transaksional lain yang masih besar dan belum tersentuh
+- atau pendalaman tambahan pada cashflow ringan jika ingin kualitasnya lebih simetris
 
 ## Kesimpulan
 
