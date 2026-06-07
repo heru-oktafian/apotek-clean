@@ -26,13 +26,16 @@ func (h *ReportHandler) GetNeracaSaldo(c *fiber.Ctx) error {
 	var startDate, endDate time.Time
 	var err error
 	if month != "" {
-		startDate, err = time.Parse("2006-01", month)
+		startDate, endDate, err = services.ParseYearMonthRange(month)
 		if err != nil {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format bulan tidak valid. Gunakan format YYYY-MM.", nil)
 		}
-		endDate = startDate.AddDate(0, 1, 0)
 	}
-	type Summary struct { TransactionType string; TransactionDate string; Total int }
+	type Summary struct {
+		TransactionType string
+		TransactionDate string
+		Total           int
+	}
 	var summaries []Summary
 	query := db.Table("transaction_reports").
 		Select("transaction_type, DATE(created_at) AS transaction_date, SUM(total) AS total").
@@ -67,12 +70,10 @@ func (h *ReportHandler) GetProfitGraphByMonth(c *fiber.Ctx) error {
 	db := configs.DB
 	branchID, _ := services.GetBranchID(c)
 	month := c.Query("month")
-	parsedMonth, err := time.Parse("2006-01", month)
+	startOfMonth, endOfMonth, err := services.ParseReportMonthBounds(month)
 	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid month format. Use YYYY-MM.", nil)
 	}
-	startOfMonth := time.Date(parsedMonth.Year(), parsedMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
-	endOfMonth := startOfMonth.AddDate(0, 1, -1)
 	var summaries []models.DailySummaryDB
 	err = db.Table("daily_profit_reports").
 		Select("report_date, SUM(total_sales) AS total_sales, SUM(profit_estimate) AS profit_estimate").
