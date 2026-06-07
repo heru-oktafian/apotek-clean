@@ -378,6 +378,32 @@ Di `another_income_handler.go`:
 - `DELETE /api/another-incomes/:id` tervalidasi runtime
 - another income sekarang cukup sehat dan kualitasnya sudah seimbang dengan expense untuk fase ini
 
+
+## 13. User Branch
+
+User branch sekarang sudah mulai disentuh sebagai modul non-transaksional strategis lanjutan.
+
+### Refactor kecil yang sudah dilakukan
+Di `services/user_branch_service.go`:
+- `BuildUserBranchRows(...)`
+- `UserBranchExists(...)`
+- `BuildUserDetailBranches(...)`
+
+Di `user_branch_handler.go`:
+- formatting response list dipisah ke helper
+- duplicate check create dipisah ke helper
+- formatter detail branch untuk endpoint detail user dipisah ke helper
+
+### Runtime verification
+- `GET /api/user-branches` -> 200
+- `POST /api/user-branches` -> 409 expected untuk pasangan user-branch yang memang sudah ada
+- `GET /api/detail-users/USR250118132201` -> 200
+
+### Catatan penting
+- Sempat ada false start saat helper service memakai referensi type model yang salah dan membuat build pecah.
+- Sudah langsung direpair dengan commit `fix: restore user branch service build`.
+- Status akhir modul user_branch untuk fase ini: build kembali hijau dan endpoint utama yang diuji sudah sehat.
+
 ## Pola kerja yang terbukti aman
 
 Pola refactor yang terbukti paling aman selama fase ini:
