@@ -263,10 +263,8 @@ func UpdateOpnameByID(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Input tidak valid", err)
 	}
 
-	// Cek dan update OpnameDate
 	if input.OpnameDate != "" {
-		layout := "2006-01-02"
-		parsedDate, err := time.Parse(layout, input.OpnameDate)
+		parsedDate, err := services.ParseOpnameDate(input.OpnameDate, nowWIB)
 		if err != nil {
 			return helpers.JSONResponse(c, http.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 		}
@@ -409,8 +407,7 @@ func CreateOpnameItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal mengambil data produk: "+err.Error(), err)
 	}
 
-	layout := "2006-01-02"
-	parsedDate, err := time.Parse(layout, input.ExpiredDate)
+	parsedDate, err := services.ParseOpnameItemDate(input.ExpiredDate)
 	if err != nil {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 	}

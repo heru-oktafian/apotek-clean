@@ -8,3 +8,7 @@ func ParseOpnameDate(inputDate string, fallback time.Time) (time.Time, error) {
 	}
 	return time.Parse("2006-01-02", inputDate)
 }
+
+func ParseOpnameItemDate(inputDate string) (time.Time, error) {
+	return time.Parse("2006-01-02", inputDate)
+}
