@@ -3,6 +3,7 @@ package services
 import (
 	"time"
 
+	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 )
 
@@ -19,7 +20,7 @@ func FormatMobileOpnameRows(rows []models.OpnameQueryResult) []models.AllOpnameM
 		formatted = append(formatted, models.AllOpnameMobiles{
 			ID:          op.ID,
 			Description: op.Description,
-			OpnameDate:  FormatIndonesianDate(op.OpnameDate),
+			OpnameDate:  helpers.FormatIndonesianDate(op.OpnameDate),
 			TotalOpname: op.TotalOpname,
 		})
 	}
