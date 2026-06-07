@@ -342,6 +342,22 @@ Di `report_handler.go`:
 
 Expense sekarang sudah mulai punya fondasi refactor kecil yang aman dan cukup sehat untuk modul cashflow ringan.
 
+### Update consistency pass
+- Setelah audit internal consistency, `expense` dipilih sebagai kandidat ROI tertinggi untuk diratakan dengan `another_income`.
+- `services/expense_service.go` sekarang mencakup:
+  - `ParseExpenseDate(...)`
+  - `NormalizeExpensePayment(...)`
+  - `EnsureExpenseEditable(...)`
+  - `ErrExpenseDataExpiredToEdit`
+- `expense_handler.go` sekarang memakai helper tersebut untuk create/update flow.
+- Runtime verification terbaru:
+  - `POST /api/expenses` -> 200
+  - `PUT /api/expenses/:id` -> 200
+  - `DELETE /api/expenses/:id` -> 200
+- Commit terkait: `refactor: extract expense editability helper`
+- Dengan ini, pola `expense` menjadi jauh lebih sejajar dengan `another_income`.
+
+
 ### Helper / perapihan yang sudah dilakukan
 Di `services/expense_service.go`:
 - `ParseExpenseDate(...)`
