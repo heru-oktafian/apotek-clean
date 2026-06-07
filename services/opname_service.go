@@ -1,6 +1,10 @@
 package services
 
-import "time"
+import (
+	"time"
+
+	models "apotek-clean/models"
+)
 
 func ParseOpnameDate(inputDate string, fallback time.Time) (time.Time, error) {
 	if inputDate == "" {
