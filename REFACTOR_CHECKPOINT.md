@@ -296,6 +296,47 @@ Di `daily_asset_handler.go`:
 - `GET /api/daily_asset?month=YYYY-MM&page=1` tervalidasi runtime
 - daily asset sekarang punya baseline refactor yang aman untuk dilanjutkan nanti bila dibutuhkan
 
+
+## 9. Defecta
+
+Defecta sudah mulai disentuh dengan pola refactor kecil yang aman, dan cleanup pentingnya sudah berhasil diselesaikan.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/defecta_service.go`:
+- `ParseDefectaDate(...)`
+- `SumDefectaSubTotal(...)`
+- `BuildDefectaItemsResponse(...)`
+- `CalculateDefectaTotalPages(...)`
+
+Di `defecta_handler.go`:
+- parsing tanggal mulai dipisah
+- subtotal mulai dipisah
+- formatting response list/detail dibantu helper service yang aman
+- import cycle yang sempat muncul sudah diperbaiki
+
+### Hasil
+- `POST /api/sys-defectas` tervalidasi runtime
+- `GET /api/sys-defectas` tervalidasi runtime
+- build sudah bersih setelah repair final
+- defecta sekarang cukup sehat untuk fase saat ini
+
+## 10. Report
+
+Report sudah mulai disentuh secara kecil dan pragmatis, terutama pada area date-range parsing.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/report_service.go`:
+- `ParseYearMonthRange(...)`
+- `ParseReportMonthBounds(...)`
+
+Di `report_handler.go`:
+- parsing range bulan untuk laporan bulanan dipindah ke helper reusable
+
+### Hasil
+- `GET /api/report/neraca-saldo?month=YYYY-MM` tervalidasi runtime
+- `GET /api/report/profit-by-month?month=YYYY-MM` tervalidasi runtime
+- report saat ini dianggap cukup sehat untuk fase sekarang dan tidak perlu dibongkar lebih jauh dulu
+
 ## Pola kerja yang terbukti aman
 
 Pola refactor yang terbukti paling aman selama fase ini:
@@ -352,11 +393,10 @@ Mulai disentuh:
 - opname sudah masuk fase refactor sehat
 
 ### Modul yang masih bisa diperdalam berikutnya
-- defecta
-- dashboard
+- dashboard (jika suatu saat perlu cleanup ringan)
 - daily asset (jika ingin diteruskan lebih dalam)
-- report
 - expense / another income jika ingin pola internal lebih seragam
+- modul non-transaksional lain yang masih belum tersentuh
 
 ## Rekomendasi tahap selanjutnya
 
@@ -371,9 +411,8 @@ Karena modul transaksi utama sekarang sudah relatif merata kualitas refactornya,
 - atau mulai cleanup / normalisasi layer jika memang diperlukan
 
 Jika ingin melanjutkan coverage, kandidat berikutnya bisa berupa:
-- dashboard
-- report
 - expense / another income untuk penyamaan pola internal lebih lanjut
+- modul non-transaksional lain yang masih besar dan belum tersentuh
 
 ## Kesimpulan
 
