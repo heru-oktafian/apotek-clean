@@ -404,6 +404,29 @@ Di `user_branch_handler.go`:
 - Sudah langsung direpair dengan commit `fix: restore user branch service build`.
 - Status akhir modul user_branch untuk fase ini: build kembali hijau dan endpoint utama yang diuji sudah sehat.
 
+
+## 14. Dashboard
+
+Dashboard disentuh ringan lagi sebagai modul non-transaksional strategis dengan risiko rendah.
+
+### Refactor kecil yang sudah dilakukan
+Di `services/dashboard_service.go`:
+- `CalculateProfitPercentages(...)`
+- `BuildDailyProfitByUserReportData(...)`
+
+Di `dashboard_handler.go`:
+- kalkulasi HPP/profit percentage mingguan dipisah ke helper
+- formatter data profit harian per user dipisah ke helper
+
+### Runtime verification
+- `GET /api/dashboard/weekly-profit-report` -> 200
+- `GET /api/dashboard/daily-profit-report` -> 200
+- `GET /api/dashboard/profit-today-by-user` -> 200
+
+### Penilaian fase ini
+- Dashboard mendapat sentuhan refactor ringan yang aman.
+- Cost-benefit untuk pembongkaran lebih dalam masih kecil, jadi cukup sehat untuk fase saat ini.
+
 ## Pola kerja yang terbukti aman
 
 Pola refactor yang terbukti paling aman selama fase ini:
