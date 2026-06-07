@@ -412,28 +412,15 @@ func CreateOpnameItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 	}
 
-	// PENTING: Simpan stock LAMA sebelum update
-	oldStock := product.Stock
-	oldPurchasePrice := product.PurchasePrice
+	snapshot := services.BuildOpnameItemSnapshot(product, parsedDate)
+	preparedItem := services.PrepareOpnameItem(helpers.GenerateID("OPI"), input, snapshot)
 
 	// Update expired date, stock, dan purchase price produk sesuai inputan
-	if err := db.Model(&product).Updates(map[string]interface{}{
-		"expired_date":   parsedDate,
-		"stock":          input.Qty,
-		"purchase_price": input.Price, // tambahkan pembaruan harga beli
-	}).Error; err != nil {
+	if err := db.Model(&product).Updates(preparedItem.ProductUpdates).Error; err != nil {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui produk: "+err.Error(), err)
 	}
 
-	var opnameItem models.OpnameItems
-	opnameItem.OpnameId = input.OpnameId
-	opnameItem.ProductId = input.ProductId
-	opnameItem.Qty = input.Qty
-	opnameItem.ExpiredDate = parsedDate
-	opnameItem.Price = input.Price
-	opnameItem.QtyExist = oldStock                         // Gunakan stock LAMA
-	opnameItem.SubTotalExist = oldStock * oldPurchasePrice // Gunakan stock LAMA
-	opnameItem.SubTotal = opnameItem.Qty * opnameItem.Price
+	opnameItem := preparedItem.Item
 
 	var existingItem models.OpnameItems
 	err = db.Where("opname_id = ? AND product_id = ?", opnameItem.OpnameId, opnameItem.ProductId).First(&existingItem).Error
@@ -459,10 +446,6 @@ func CreateOpnameItem(c *fiber.Ctx) error {
 
 	} else if err != gorm.ErrRecordNotFound {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Terjadi kesalahan di database saat pengecekan: "+err.Error(), err)
-	}
-
-	if opnameItem.ID == "" {
-		opnameItem.ID = helpers.GenerateID("OPI")
 	}
 
 	if err := db.Create(&opnameItem).Error; err != nil {
