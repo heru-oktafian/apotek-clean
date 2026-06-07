@@ -275,6 +275,27 @@ Di `opname_handler.go`:
 - `PUT /api/opnames/:id` tervalidasi
 - opname sekarang jauh lebih sehat dibanding kondisi awal dan cukup layak sebagai baseline non-transaksional yang sudah ditata
 
+
+## 8. Daily Asset
+
+Daily asset sekarang sudah mulai disentuh dengan refactor kecil yang aman, dan baseline runtime-nya juga sudah terkonfirmasi.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/daily_asset_service.go`:
+- `ParseDailyAssetMonth(...)`
+- `CalculateDailyAssetTotalPages(...)`
+
+Di `daily_asset_handler.go`:
+- parsing bulan dipisah
+- perhitungan total pages dipisah
+- formatting tanggal asset tetap ditahan di handler agar tidak memicu import cycle
+
+### Hasil
+- build sudah bersih setelah repair import cycle
+- route aktif terkonfirmasi menggunakan `/api/daily_asset`
+- `GET /api/daily_asset?month=YYYY-MM&page=1` tervalidasi runtime
+- daily asset sekarang punya baseline refactor yang aman untuk dilanjutkan nanti bila dibutuhkan
+
 ## Pola kerja yang terbukti aman
 
 Pola refactor yang terbukti paling aman selama fase ini:
@@ -333,7 +354,8 @@ Mulai disentuh:
 ### Modul yang masih bisa diperdalam berikutnya
 - defecta
 - dashboard
-- daily asset
+- daily asset (jika ingin diteruskan lebih dalam)
+- report
 - expense / another income jika ingin pola internal lebih seragam
 
 ## Rekomendasi tahap selanjutnya
@@ -349,9 +371,8 @@ Karena modul transaksi utama sekarang sudah relatif merata kualitas refactornya,
 - atau mulai cleanup / normalisasi layer jika memang diperlukan
 
 Jika ingin melanjutkan coverage, kandidat berikutnya bisa berupa:
-- defecta
 - dashboard
-- daily asset
+- report
 - expense / another income untuk penyamaan pola internal lebih lanjut
 
 ## Kesimpulan
