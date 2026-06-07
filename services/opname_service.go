@@ -1,28 +1,10 @@
 package services
 
-import (
-	"time"
-
-	helpers "apotek-clean/helpers"
-	models "apotek-clean/models"
-)
+import "time"
 
 func ParseOpnameDate(inputDate string, fallback time.Time) (time.Time, error) {
 	if inputDate == "" {
 		return fallback, nil
 	}
 	return time.Parse("2006-01-02", inputDate)
-}
-
-func FormatMobileOpnameRows(rows []models.OpnameQueryResult) []models.AllOpnameMobiles {
-	formatted := make([]models.AllOpnameMobiles, 0, len(rows))
-	for _, op := range rows {
-		formatted = append(formatted, models.AllOpnameMobiles{
-			ID:          op.ID,
-			Description: op.Description,
-			OpnameDate:  helpers.FormatIndonesianDate(op.OpnameDate),
-			TotalOpname: op.TotalOpname,
-		})
-	}
-	return formatted
 }

@@ -17,6 +17,19 @@ import (
 )
 
 // Get Mobile Opnames menampilkan semua opname yang disajikan untuk pengguna mobile
+func formatMobileOpnameRows(rows []models.OpnameQueryResult) []models.AllOpnameMobiles {
+	formatted := make([]models.AllOpnameMobiles, 0, len(rows))
+	for _, op := range rows {
+		formatted = append(formatted, models.AllOpnameMobiles{
+			ID:          op.ID,
+			Description: op.Description,
+			OpnameDate:  helpers.FormatIndonesianDate(op.OpnameDate),
+			TotalOpname: op.TotalOpname,
+		})
+	}
+	return formatted
+}
+
 func GetAllMobileOpnames(c *fiber.Ctx) error {
 	branchID, _ := services.GetBranchID(c)
 	var rawOpnames []models.OpnameQueryResult // Gunakan struct untuk menampung hasil query mentah
@@ -31,7 +44,7 @@ func GetAllMobileOpnames(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Pengambilan opnames gagal", "Gagal mengambil data Opname")
 	}
 
-	formattedOpnames := services.FormatMobileOpnameRows(rawOpnames)
+	formattedOpnames := formatMobileOpnameRows(rawOpnames)
 
 	return helpers.JSONResponse(c, http.StatusOK, "Data opname berhasil diambil", formattedOpnames)
 }
@@ -51,7 +64,7 @@ func GetAllActiveMobileOpnames(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Pengambilan Opname gagal", "Gagal mengambil data Opname")
 	}
 
-	formattedOpnames := services.FormatMobileOpnameRows(rawOpnames)
+	formattedOpnames := formatMobileOpnameRows(rawOpnames)
 
 	return helpers.JSONResponse(c, http.StatusOK, "Data opname berhasil diambil", formattedOpnames)
 }
