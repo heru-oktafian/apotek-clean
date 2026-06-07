@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	math "math"
 	strconv "strconv"
 	strings "strings"
 	time "time"
