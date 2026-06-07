@@ -55,7 +55,10 @@ func (h *DailyAssetHandler) GetAllAssets(c *fiber.Ctx) error {
 	if err := configs.DB.Table("daily_assets").Select("asset_average").Where("branch_id = ? AND asset_date BETWEEN ? AND ?", branchID, startDate, endDate).Order("asset_date DESC").Limit(1).Scan(&latestAvg).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get assets failed", err)
 	}
-	formattedDailyAsset := services.FormatDailyAssetRows(dailyAssetFromDB)
+	var formattedDailyAsset []models.DetailDailyAsset
+	for _, daily := range dailyAssetFromDB {
+		formattedDailyAsset = append(formattedDailyAsset, models.DetailDailyAsset{ID: daily.ID, AssetDate: helpers.FormatIndonesianDate(daily.AssetDate), AssetValue: daily.AssetValue, BranchId: daily.BranchId, AssetAverage: daily.AssetAverage, BranchName: daily.BranchName})
+	}
 	totalPages := services.CalculateDailyAssetTotalPages(total, limit)
 	return h.jsonResponseGetAllAssets(c, fiber.StatusOK, "Daily assets retrieved successfully", latestAvg.AssetAverage, int(total), page, totalPages, limit, formattedDailyAsset)
 }
