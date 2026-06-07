@@ -17,6 +17,22 @@ import (
 )
 
 // Get Mobile Opnames menampilkan semua opname yang disajikan untuk pengguna mobile
+func finalizeOpnameCreate(db *gorm.DB, opname models.Opnames) error {
+	if err := helpers.SyncOpnameReport(db, opname); err != nil {
+		return err
+	}
+	helpers.AutoCleanupOpnames(db)
+	return nil
+}
+
+func finalizeOpnameUpdate(db *gorm.DB, opnameID string) error {
+	if err := helpers.RecalculateTotalOpname(db, opnameID); err != nil {
+		return err
+	}
+	helpers.AutoCleanupOpnames(db)
+	return nil
+}
+
 func formatMobileOpnameRows(rows []models.OpnameQueryResult) []models.AllOpnameMobiles {
 	formatted := make([]models.AllOpnameMobiles, 0, len(rows))
 	for _, op := range rows {
@@ -231,12 +247,9 @@ func CreateOpname(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menyimpan data opname", err.Error())
 	}
 
-	// Buat laporan
-	if err := helpers.SyncOpnameReport(db, opname); err != nil {
+	if err := finalizeOpnameCreate(db, opname); err != nil {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal membuat laporan opname", err.Error())
 	}
-
-	_ = helpers.AutoCleanupOpnames(db)
 
 	return helpers.JSONResponse(c, http.StatusOK, "Opname berhasil dibuat", opname)
 }
@@ -288,13 +301,9 @@ func UpdateOpnameByID(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui opname", err)
 	}
 
-	// Hitung ulang total secara sinkron dan simpan hasil database langsung menggunakan helper RecalculateTotalOpname
-	// Helper RecalculateTotalOpname juga otomatis melakukan SyncOpnameReport.
-	if err := helpers.RecalculateTotalOpname(db, id); err != nil {
+	if err := finalizeOpnameUpdate(db, id); err != nil {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menghitung ulang total opname", err)
 	}
-
-	_ = helpers.AutoCleanupOpnames(db)
 
 	// Fetch again to return updated object
 	db.First(&opname, "id = ?", id)
