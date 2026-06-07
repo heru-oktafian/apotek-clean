@@ -4,7 +4,6 @@ import (
 	"math"
 	"time"
 
-	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 )
 
@@ -36,16 +35,6 @@ func BuildDefectaItemsResponse(items []models.AllDefectaItems) []models.AllDefec
 	return formatted
 }
 
-func BuildDefectaListResponse(defectas []models.Defectas, limit int, total int64, page int) (int, []models.DefectaDetailResponse) {
-	totalPages := int(math.Ceil(float64(total) / float64(limit)))
-	formatted := make([]models.DefectaDetailResponse, 0, len(defectas))
-	for _, d := range defectas {
-		formatted = append(formatted, models.DefectaDetailResponse{
-			ID:            d.ID,
-			DefectaDate:   helpers.FormatIndonesianDate(d.DefectaDate),
-			TotalEstimate: d.TotalEstimate,
-			DefectaStatus: string(d.DefectaStatus),
-		})
-	}
-	return totalPages, formatted
+func CalculateDefectaTotalPages(limit int, total int64) int {
+	return int(math.Ceil(float64(total) / float64(limit)))
 }
