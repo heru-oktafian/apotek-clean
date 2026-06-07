@@ -247,6 +247,34 @@ Di `first_stock_handler.go`:
 - first stock sekarang sudah memiliki helper dasar, loop item yang bersih, rollback terpusat, dan orchestration yang rapi
 - first stock sudah layak dianggap hijau penuh untuk fase ini
 
+
+## 7. Opname
+
+Opname sekarang sudah mulai keluar dari kondisi handler besar yang mentah, dan sudah punya fondasi refactor non-transaksional yang cukup sehat.
+
+### Helper / perapihan yang sudah dilakukan
+Di `services/opname_service.go`:
+- `ParseOpnameDate(...)`
+- `ParseOpnameItemDate(...)`
+- `BuildOpnameItemSnapshot(...)`
+- `PrepareOpnameItem(...)`
+- `PrepareOpnameItemUpdate(...)`
+
+Di `opname_handler.go`:
+- formatting mobile opname dipindah ke helper lokal
+- parsing tanggal create/update dipisah
+- item preparation create dipisah
+- orchestration create/update dipusatkan
+- item update flow dipisah ke helper preparation
+
+### Hasil
+- `GET /api/mobile-opnames` tervalidasi
+- `POST /api/opnames` tervalidasi
+- `POST /api/opname-items` tervalidasi
+- `PUT /api/opname-items` tervalidasi
+- `PUT /api/opnames/:id` tervalidasi
+- opname sekarang jauh lebih sehat dibanding kondisi awal dan cukup layak sebagai baseline non-transaksional yang sudah ditata
+
 ## Pola kerja yang terbukti aman
 
 Pola refactor yang terbukti paling aman selama fase ini:
@@ -298,9 +326,15 @@ Pelajaran:
 ### First stock
 - kualitasnya sekarang sudah sejajar dengan modul transaksi utama lain untuk fase ini
 
-### Modul transaksi lain
-Belum masuk refactor mendalam fase ini:
-- kemungkinan expense / another income untuk tahap service/usecase lebih lanjut jika diperlukan
+### Modul lain di luar transaksi utama
+Mulai disentuh:
+- opname sudah masuk fase refactor sehat
+
+### Modul yang masih bisa diperdalam berikutnya
+- defecta
+- dashboard
+- daily asset
+- expense / another income jika ingin pola internal lebih seragam
 
 ## Rekomendasi tahap selanjutnya
 
@@ -315,8 +349,10 @@ Karena modul transaksi utama sekarang sudah relatif merata kualitas refactornya,
 - atau mulai cleanup / normalisasi layer jika memang diperlukan
 
 Jika ingin melanjutkan coverage, kandidat berikutnya bisa berupa:
+- defecta
+- dashboard
+- daily asset
 - expense / another income untuk penyamaan pola internal lebih lanjut
-- modul non-transaksional yang masih memiliki handler besar
 
 ## Kesimpulan
 
