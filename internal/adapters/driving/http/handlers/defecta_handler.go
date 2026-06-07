@@ -27,7 +27,7 @@ func (h *DefectaHandler) CreateDefecta(c *fiber.Ctx) error {
 	if err := c.BodyParser(&input); err != nil {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid Input", nil)
 	}
-	parsedDate, err := time.Parse("2006-01-02", input.DefectaDate)
+	parsedDate, err := services.ParseDefectaDate(input.DefectaDate, nowWIB)
 	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", nil)
 	}
@@ -50,7 +50,7 @@ func (h *DefectaHandler) UpdateDefecta(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusNotFound, "Defecta not found", nil)
 	}
 	if input.DefectaDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", input.DefectaDate)
+		parsedDate, err := services.ParseDefectaDate(input.DefectaDate, nowWIB)
 		if err != nil {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", nil)
 		}
@@ -92,7 +92,7 @@ func (h *DefectaHandler) CreateDefectaItem(c *fiber.Ctx) error {
 	result := configs.DB.Where("defecta_id = ? AND product_id = ?", input.DefectaId, input.ProductId).First(&existingItem)
 	if result.Error == nil {
 		existingItem.Qty += input.Qty
-		existingItem.SubTotal = existingItem.Price * existingItem.Qty
+		existingItem.SubTotal = services.SumDefectaSubTotal(existingItem.Price, existingItem.Qty)
 		if err := configs.DB.Save(&existingItem).Error; err != nil {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update defecta item", nil)
 		}
@@ -101,7 +101,7 @@ func (h *DefectaHandler) CreateDefectaItem(c *fiber.Ctx) error {
 		configs.DB.Table("defectas").Where("id = ?", existingItem.DefectaId).Update("total_estimate", totalEstimate)
 		return helpers.JSONResponse(c, fiber.StatusOK, "Defecta item updated successfully", existingItem)
 	}
-	defectaItem := models.DefectaItems{ID: generatedID, DefectaId: input.DefectaId, ProductId: input.ProductId, UnitId: input.UnitId, Price: input.Price, Qty: input.Qty, SubTotal: input.Price * input.Qty}
+	defectaItem := models.DefectaItems{ID: generatedID, DefectaId: input.DefectaId, ProductId: input.ProductId, UnitId: input.UnitId, Price: input.Price, Qty: input.Qty, SubTotal: services.SumDefectaSubTotal(input.Price, input.Qty)}
 	if err := configs.DB.Create(&defectaItem).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create defecta item", nil)
 	}
@@ -129,7 +129,7 @@ func (h *DefectaHandler) UpdateDefectaItem(c *fiber.Ctx) error {
 		defectaItem.Price = input.Price
 	}
 	defectaItem.Qty = input.Qty
-	defectaItem.SubTotal = input.Price * input.Qty
+	defectaItem.SubTotal = services.SumDefectaSubTotal(input.Price, input.Qty)
 	if err := configs.DB.Save(&defectaItem).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update defecta item", nil)
 	}
@@ -160,11 +160,15 @@ func (h *DefectaHandler) GetAllDefectas(c *fiber.Ctx) error {
 	pageParam := c.Query("page")
 	search := strings.TrimSpace(c.Query("search"))
 	page := 1
-	if p, err := strconv.Atoi(pageParam); err == nil && p > 0 { page = p }
+	if p, err := strconv.Atoi(pageParam); err == nil && p > 0 {
+		page = p
+	}
 	limit := 10
 	offset := (page - 1) * limit
 	month := strings.TrimSpace(c.Query("month"))
-	if month == "" { month = nowWIB.Format("2006-01") }
+	if month == "" {
+		month = nowWIB.Format("2006-01")
+	}
 	var defectas []models.Defectas
 	var total int64
 	query := configs.DB.Table("defectas df").Select("df.id, df.defecta_date, df.total_estimate, df.defecta_status").Where("df.branch_id = ?", branchID)
@@ -184,11 +188,7 @@ func (h *DefectaHandler) GetAllDefectas(c *fiber.Ctx) error {
 	if err := query.Order("df.created_at DESC").Limit(limit).Offset(offset).Find(&defectas).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to fetch defectas", nil)
 	}
-	totalPages := int(math.Ceil(float64(total) / float64(limit)))
-	var formattedDefectas []models.DefectaDetailResponse
-	for _, d := range defectas {
-		formattedDefectas = append(formattedDefectas, models.DefectaDetailResponse{ID: d.ID, DefectaDate: helpers.FormatIndonesianDate(d.DefectaDate), TotalEstimate: d.TotalEstimate, DefectaStatus: string(d.DefectaStatus)})
-	}
+	totalPages, formattedDefectas := services.BuildDefectaListResponse(defectas, limit, total, page)
 	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Defectas retrieved successfully", search, int(total), page, totalPages, limit, formattedDefectas)
 }
 
@@ -221,10 +221,7 @@ func (h *DefectaHandler) GetDefetaWithItems(c *fiber.Ctx) error {
 		Find(&defectaItems).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to fetch defecta items", nil)
 	}
-	var formattedDefectaItems []models.AllDefectaItems
-	for _, item := range defectaItems {
-		formattedDefectaItems = append(formattedDefectaItems, models.AllDefectaItems{ID: item.ID, ProductId: item.ProductId, ProductName: item.ProductName, UnitId: item.UnitId, UnitName: item.UnitName, Price: item.Price, Qty: item.Qty, SubTotal: item.SubTotal})
-	}
+	formattedDefectaItems := services.BuildDefectaItemsResponse(defectaItems)
 	response := models.DefectaDetailWithItemsResponse{ID: defecta.ID, DefectaDate: helpers.FormatIndonesianDate(defecta.DefectaDate), TotalEstimate: defecta.TotalEstimate, DefectaStatus: string(defecta.DefectaStatus), Items: formattedDefectaItems}
 	return helpers.JSONResponse(c, fiber.StatusOK, "Defecta details retrieved successfully", response)
 }
