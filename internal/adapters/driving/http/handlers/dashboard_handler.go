@@ -208,14 +208,11 @@ func (h *DashboardHandler) GetDailyProfitReportByUser(c *fiber.Ctx) error {
 	if qtyTransactions > 0 {
 		abvTransactions = int(totalSales) / int(qtyTransactions)
 	}
-	var reportData []fiber.Map
+	rawReportData := make([]fiber.Map, 0, len(results))
 	for _, r := range results {
-		percentage := 0
-		if totalProfit > 0 {
-			percentage = int(float64(r.Profit) / float64(totalProfit) * 100)
-		}
-		reportData = append(reportData, fiber.Map{"user_id": r.UserID, "user_name": r.UserName, "profit": r.Profit, "sales": r.Sales, "profit_percentage": percentage})
+		rawReportData = append(rawReportData, fiber.Map{"user_id": r.UserID, "user_name": r.UserName, "profit": r.Profit, "sales": r.Sales})
 	}
+	reportData := services.BuildDailyProfitByUserReportData(rawReportData, totalProfit)
 	return h.jsonProfitReportToDay(c, http.StatusOK, "Profit Report Successfully", "daily", totalProfit, totalSales, qtyTransactions, abvTransactions, reportData)
 }
 
