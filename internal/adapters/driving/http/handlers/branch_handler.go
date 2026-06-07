@@ -40,14 +40,8 @@ func (h *BranchHandler) GetAllBranch(c *fiber.Ctx) error {
 
 func (h *BranchHandler) GetBranchByUserId(c *fiber.Ctx) error {
 	userID, _ := services.GetUserID(c)
-	var userBranchDetails []models.UserBranchDetail
-	if err := config.DB.
-		Table("user_branches").
-		Select("user_branches.user_id, users.name AS user_name, user_branches.branch_id, branches.branch_name, branches.sia_name, branches.sipa_name, branches.phone").
-		Joins("LEFT JOIN users ON users.id = user_branches.user_id").
-		Joins("LEFT JOIN branches ON branches.id = user_branches.branch_id").
-		Where("branches.branch_status = 'active' AND user_branches.user_id = ?", userID).
-		Scan(&userBranchDetails).Error; err != nil {
+	userBranchDetails, err := services.GetActiveUserBranchDetails(config.DB, userID)
+	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get userbranches failed", "Failed to fetch user branches with details")
 	}
 	return helpers.JSONResponse(c, fiber.StatusOK, "User Branch found", userBranchDetails)
