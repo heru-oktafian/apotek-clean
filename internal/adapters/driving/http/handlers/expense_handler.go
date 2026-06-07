@@ -31,9 +31,7 @@ func CreateExpense(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
 	}
 
-	// Parse tanggal
-	layout := "2006-01-02" // format harus YYYY-MM-DD
-	parsedDate, err := time.Parse(layout, input.ExpenseDate)
+	parsedDate, err := services.ParseExpenseDate(input.ExpenseDate, nowWIB)
 	description := input.Description
 	payment := input.Payment
 	total := input.TotalExpense
@@ -88,9 +86,15 @@ func UpdateExpense(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
 	}
 
+	if err := services.EnsureExpenseEditable(db, expense.ID); err != nil {
+		if err == services.ErrExpenseDataExpiredToEdit {
+			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
+		}
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve expense timestamp", err)
+	}
+
 	if input.ExpenseDate != "" {
-		layout := "2006-01-02"
-		parsedDate, err := time.Parse(layout, input.ExpenseDate)
+		parsedDate, err := services.ParseExpenseDate(input.ExpenseDate, nowWIB)
 		if err != nil {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
 		}
@@ -103,9 +107,7 @@ func UpdateExpense(c *fiber.Ctx) error {
 	if input.TotalExpense != 0 {
 		expense.TotalExpense = input.TotalExpense
 	}
-	if input.Payment != "" {
-		expense.Payment = models.PaymentStatus(input.Payment)
-	}
+	expense.Payment = models.PaymentStatus(services.NormalizeExpensePayment(string(expense.Payment), input.Payment))
 	expense.UpdatedAt = nowWIB
 
 	// Simpan update
