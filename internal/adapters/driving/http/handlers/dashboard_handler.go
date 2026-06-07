@@ -70,13 +70,7 @@ func (h *DashboardHandler) WeeklyProfitReport(c *fiber.Ctx) error {
 		totalOmset += s.TotalSales
 		totalProfit += s.ProfitEstimate
 	}
-	totalHPP := totalOmset - totalProfit
-	hppPercentage := 0
-	profitPercentage := 0
-	if totalOmset > 0 {
-		hppPercentage = (totalHPP * 100) / totalOmset
-		profitPercentage = (totalProfit * 100) / totalOmset
-	}
+	totalHPP, hppPercentage, profitPercentage := services.CalculateProfitPercentages(totalOmset, totalProfit)
 	response := models.WeeklyProfitReportResponse{Omset: totalOmset, Profit: totalProfit, TotalHPP: totalHPP, ProfitPercentage: profitPercentage, HPPPercentage: hppPercentage}
 	return helpers.JSONResponse(c, http.StatusOK, "Weekly sales & profit report", []models.WeeklyProfitReportResponse{response})
 }
@@ -104,7 +98,11 @@ func (h *DashboardHandler) GetTopSellingProducts(c *fiber.Ctx) error {
 	db := configs.DB
 	branchID, _ := services.GetBranchID(c)
 	oneMonthAgo := time.Now().AddDate(0, -1, 0)
-	type Result struct { ProductID string; Name string; TotalQty int }
+	type Result struct {
+		ProductID string
+		Name      string
+		TotalQty  int
+	}
 	var results []Result
 	err := db.Table("sale_items").
 		Select("products.id as product_id, products.name, SUM(sale_items.qty) as total_qty").
@@ -127,7 +125,12 @@ func (h *DashboardHandler) GetLeastSellingProducts(c *fiber.Ctx) error {
 	now := time.Now()
 	oneMonthAgo := now.AddDate(0, -1, 0)
 	subQuery := db.Table("sale_items").Select("product_id, SUM(qty) as total_sold").Joins("JOIN sales ON sales.id = sale_items.sale_id").Where("sales.sale_date BETWEEN ? AND ?", oneMonthAgo, now).Group("product_id")
-	type Result struct { ProductID string `json:"product_id"`; ProductName string `json:"product_name"`; Stock int `json:"stock"`; TotalSold int `json:"total_sold"` }
+	type Result struct {
+		ProductID   string `json:"product_id"`
+		ProductName string `json:"product_name"`
+		Stock       int    `json:"stock"`
+		TotalSold   int    `json:"total_sold"`
+	}
 	var results []Result
 	if err := db.Table("products p").
 		Select("p.id as product_id, p.name as product_name, p.stock, COALESCE(s.total_sold, 0) as total_sold").
@@ -145,7 +148,14 @@ func (h *DashboardHandler) GetExpiringProducts(c *fiber.Ctx) error {
 	db := configs.DB
 	nowWIB := time.Now().In(configs.Location)
 	threeMonthsLater := nowWIB.AddDate(0, 3, 0)
-	type ProductQueryResult struct { ID string `gorm:"column:id"`; SKU string `gorm:"column:sku"`; Name string `gorm:"column:name"`; Stock int `gorm:"column:stock"`; Unit string `gorm:"column:unit"`; ExpiredDate time.Time `gorm:"column:expired_date"` }
+	type ProductQueryResult struct {
+		ID          string    `gorm:"column:id"`
+		SKU         string    `gorm:"column:sku"`
+		Name        string    `gorm:"column:name"`
+		Stock       int       `gorm:"column:stock"`
+		Unit        string    `gorm:"column:unit"`
+		ExpiredDate time.Time `gorm:"column:expired_date"`
+	}
 	var rawProducts []ProductQueryResult
 	err := db.Table("products").
 		Select("products.id, products.sku, products.name, products.stock, units.name as unit, products.expired_date").
@@ -168,7 +178,12 @@ func (h *DashboardHandler) GetDailyProfitReportByUser(c *fiber.Ctx) error {
 	db := configs.DB
 	branchID, _ := services.GetBranchID(c)
 	today := nowWIB.Format("2006-01-02")
-	type Result struct { UserID string; UserName string; Profit int; Sales int }
+	type Result struct {
+		UserID   string
+		UserName string
+		Profit   int
+		Sales    int
+	}
 	var results []Result
 	err := db.Table("daily_profit_reports").
 		Select("users.id, users.name AS user_name, SUM(daily_profit_reports.profit_estimate) AS profit, SUM(daily_profit_reports.total_sales) AS sales").
@@ -180,18 +195,25 @@ func (h *DashboardHandler) GetDailyProfitReportByUser(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to fetch report", err)
 	}
 	var totalProfit, totalSales int
-	for _, r := range results { totalProfit += r.Profit; totalSales += r.Sales }
+	for _, r := range results {
+		totalProfit += r.Profit
+		totalSales += r.Sales
+	}
 	var qtyTransactions int64
 	err = db.Table("sales").Where("DATE(created_at) = ? AND branch_id = ?", today, branchID).Count(&qtyTransactions).Error
 	if err != nil {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to count transactions", err)
 	}
 	abvTransactions := 0
-	if qtyTransactions > 0 { abvTransactions = int(totalSales) / int(qtyTransactions) }
+	if qtyTransactions > 0 {
+		abvTransactions = int(totalSales) / int(qtyTransactions)
+	}
 	var reportData []fiber.Map
 	for _, r := range results {
 		percentage := 0
-		if totalProfit > 0 { percentage = int(float64(r.Profit) / float64(totalProfit) * 100) }
+		if totalProfit > 0 {
+			percentage = int(float64(r.Profit) / float64(totalProfit) * 100)
+		}
 		reportData = append(reportData, fiber.Map{"user_id": r.UserID, "user_name": r.UserName, "profit": r.Profit, "sales": r.Sales, "profit_percentage": percentage})
 	}
 	return h.jsonProfitReportToDay(c, http.StatusOK, "Profit Report Successfully", "daily", totalProfit, totalSales, qtyTransactions, abvTransactions, reportData)
