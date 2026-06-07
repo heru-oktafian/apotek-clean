@@ -29,16 +29,10 @@ func (h *DailyAssetHandler) GetAllAssets(c *fiber.Ctx) error {
 	}
 	limit := 10
 	offset := (page - 1) * limit
-	month := strings.TrimSpace(c.Query("month"))
-	if month == "" {
-		month = nowWIB.Format("2006-01")
-	}
-	parsedMonth, err := time.Parse("2006-01", month)
+	month, startDate, endDate, err := services.ParseDailyAssetMonth(strings.TrimSpace(c.Query("month")), nowWIB)
 	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid month format. Month should be in format YYYY-MM", err)
 	}
-	startDate := parsedMonth
-	endDate := startDate.AddDate(0, 1, 0).Add(-time.Nanosecond)
 	var dailyAssetFromDB []models.AllDailyAsset
 	var total int64
 	query := configs.DB.Table("daily_assets ast").
@@ -55,15 +49,14 @@ func (h *DailyAssetHandler) GetAllAssets(c *fiber.Ctx) error {
 	if err := query.Offset(offset).Limit(limit).Scan(&dailyAssetFromDB).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get assets failed", err)
 	}
-	var latestAvg struct { AssetAverage int `gorm:"column:asset_average"` }
+	var latestAvg struct {
+		AssetAverage int `gorm:"column:asset_average"`
+	}
 	if err := configs.DB.Table("daily_assets").Select("asset_average").Where("branch_id = ? AND asset_date BETWEEN ? AND ?", branchID, startDate, endDate).Order("asset_date DESC").Limit(1).Scan(&latestAvg).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get assets failed", err)
 	}
-	var formattedDailyAsset []models.DetailDailyAsset
-	for _, daily := range dailyAssetFromDB {
-		formattedDailyAsset = append(formattedDailyAsset, models.DetailDailyAsset{ID: daily.ID, AssetDate: helpers.FormatIndonesianDate(daily.AssetDate), AssetValue: daily.AssetValue, BranchId: daily.BranchId, AssetAverage: daily.AssetAverage, BranchName: daily.BranchName})
-	}
-	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+	formattedDailyAsset := services.FormatDailyAssetRows(dailyAssetFromDB)
+	totalPages := services.CalculateDailyAssetTotalPages(total, limit)
 	return h.jsonResponseGetAllAssets(c, fiber.StatusOK, "Daily assets retrieved successfully", latestAvg.AssetAverage, int(total), page, totalPages, limit, formattedDailyAsset)
 }
 
