@@ -34,9 +34,7 @@ func CreateAnotherIncome(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
 	}
 
-	// Parse tanggal
-	layout := "2006-01-02" // format harus YYYY-MM-DD
-	parsedDate, err := time.Parse(layout, input.IncomeDate)
+	parsedDate, err := services.ParseAnotherIncomeDate(input.IncomeDate, nowWIB)
 	description := input.Description
 	payment := input.Payment
 	total := input.TotalIncome
@@ -90,9 +88,15 @@ func UpdateAnotherIncome(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
 	}
 
+	if err := services.EnsureAnotherIncomeEditable(db, another_income.ID); err != nil {
+		if err == services.ErrAnotherIncomeDataExpiredToEdit {
+			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
+		}
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve another income timestamp", err)
+	}
+
 	if input.IncomeDate != "" {
-		layout := "2006-01-02"
-		parsedDate, err := time.Parse(layout, input.IncomeDate)
+		parsedDate, err := services.ParseAnotherIncomeDate(input.IncomeDate, nowWIB)
 		if err != nil {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
 		}
@@ -105,9 +109,7 @@ func UpdateAnotherIncome(c *fiber.Ctx) error {
 	if input.TotalIncome != 0 {
 		another_income.TotalIncome = input.TotalIncome
 	}
-	if input.Payment != "" {
-		another_income.Payment = models.PaymentStatus(input.Payment)
-	}
+	another_income.Payment = models.PaymentStatus(services.NormalizeAnotherIncomePayment(string(another_income.Payment), input.Payment))
 	another_income.UpdatedAt = nowWIB
 
 	// Simpan update
