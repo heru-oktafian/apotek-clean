@@ -376,6 +376,20 @@ Di `expense_handler.go`:
 
 Another income sekarang juga sudah mulai masuk ke pola refactor ringan yang sama dengan expense, bahkan sedikit lebih rapi.
 
+### Update consistency pass lanjutan
+- Setelah `expense`, consistency pass dilanjutkan ke `another_income`.
+- Wiring helper di `another_income_handler.go` dirapikan agar benar-benar memakai helper yang sudah ada:
+  - `ParseAnotherIncomeDate(...)`
+  - `EnsureAnotherIncomeEditable(...)`
+  - `NormalizeAnotherIncomePayment(...)`
+- Runtime verification terbaru:
+  - `POST /api/another-incomes` -> 200
+  - `PUT /api/another-incomes/:id` -> 200
+  - `DELETE /api/another-incomes/:id` -> 200
+- Commit terkait: `refactor: align another income handler helper wiring`
+- Dengan ini, `another_income` menjadi lebih konsisten penuh antara helper layer dan handler layer.
+
+
 ### Helper / perapihan yang sudah dilakukan
 Di `services/another_income_service.go`:
 - `ParseAnotherIncomeDate(...)`
