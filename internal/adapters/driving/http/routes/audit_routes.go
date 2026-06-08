@@ -24,6 +24,7 @@ func RegisterAuditRoutes(app *fiber.App) {
 	app.Get("/api/opnames", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.GetAllOpnames)
 	app.Post("/api/opnames", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.CreateOpname)
 	app.Get("/api/opnames/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.GetOpnameWithItems)
+	app.Get("/api/opnames/:id/items", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.GetOpnameItemsByOpnameID)
 	app.Put("/api/opnames/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.UpdateOpnameByID)
 	app.Delete("/api/opnames/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.DeleteOpnameByID)
 	app.Get("/api/opname-items", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), handlers.GetAllOpnameItems)

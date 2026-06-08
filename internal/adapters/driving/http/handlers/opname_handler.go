@@ -473,6 +473,35 @@ func CreateOpnameItem(c *fiber.Ctx) error {
 
 // GetAllOpnameItems tampilkan semua item berdasarkan product_name tanpa pagination
 // Opname ID harus dikirim dalam body JSON sebagai {"opname_id":"..."}
+func getOpnameItemsByOpnameID(opnameID string) ([]models.AllOpnameItemMobiles, error) {
+	var opnameItems []models.AllOpnameItemMobiles
+	query := configs.DB.Table("opname_items pit").
+		Select("pit.id, pit.opname_id, pit.product_id, pro.name AS product_name, TO_CHAR(pit.price, 'FM999G999G999') AS price, pit.qty, pit.qty_exist, TO_CHAR(pit.sub_total, 'FM999G999G999') AS sub_total, TO_CHAR(pit.sub_total_exist, 'FM999G999G999') AS sub_total_exist, TO_CHAR(pit.expired_date, 'DD-MM-YYYY') AS expired_date").
+		Joins("LEFT JOIN products pro ON pro.id = pit.product_id").
+		Where("pit.opname_id = ?", opnameID).
+		Order("pro.name ASC")
+
+	if err := query.Scan(&opnameItems).Error; err != nil {
+		return nil, err
+	}
+
+	return opnameItems, nil
+}
+
+func GetOpnameItemsByOpnameID(c *fiber.Ctx) error {
+	opnameID := c.Params("id")
+	if opnameID == "" {
+		return helpers.JSONResponse(c, http.StatusBadRequest, "ID opname tidak boleh kosong", nil)
+	}
+
+	opnameItems, err := getOpnameItemsByOpnameID(opnameID)
+	if err != nil {
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Pengambilan item gagal", "Gagal mengambil data item Opname")
+	}
+
+	return helpers.JSONResponse(c, http.StatusOK, "Item berhasil ditampilkan", opnameItems)
+}
+
 func GetAllOpnameItems(c *fiber.Ctx) error {
 	// parse opname_id from body
 	var payload struct {
@@ -481,21 +510,16 @@ func GetAllOpnameItems(c *fiber.Ctx) error {
 	if err := c.BodyParser(&payload); err != nil {
 		return helpers.JSONResponse(c, http.StatusBadRequest, "Masukan tidak valid: "+err.Error(), err)
 	}
+	if payload.OpnameId == "" {
+		return helpers.JSONResponse(c, http.StatusBadRequest, "opname_id tidak boleh kosong", nil)
+	}
 
-	// Query dasar
-	var OpnameItems []models.AllOpnameItemMobiles
-	query := configs.DB.Table("opname_items pit").
-		Select("pit.id, pit.opname_id, pit.product_id, pro.name AS product_name, TO_CHAR(pit.price, 'FM999G999G999') AS price, pit.qty, pit.qty_exist, TO_CHAR(pit.sub_total, 'FM999G999G999') AS sub_total, TO_CHAR(pit.sub_total_exist, 'FM999G999G999') AS sub_total_exist, TO_CHAR(pit.expired_date, 'DD-MM-YYYY') AS expired_date").
-		Joins("LEFT JOIN products pro ON pro.id = pit.product_id").
-		Where("pit.opname_id = ?", payload.OpnameId).
-		Order("pro.name ASC")
-
-	// Eksekusi query
-	if err := query.Scan(&OpnameItems).Error; err != nil {
+	opnameItems, err := getOpnameItemsByOpnameID(payload.OpnameId)
+	if err != nil {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Pengambilan item gagal", "Gagal mengambil data item Opname")
 	}
 
-	return helpers.JSONResponse(c, http.StatusOK, "Item berhasil ditampilkan", OpnameItems)
+	return helpers.JSONResponse(c, http.StatusOK, "Item berhasil ditampilkan", opnameItems)
 }
 
 // Update OpnameItem
