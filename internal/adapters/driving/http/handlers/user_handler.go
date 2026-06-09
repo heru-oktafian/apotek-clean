@@ -55,8 +55,8 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 
 func (h *UserHandler) GetUserByID(c *fiber.Ctx) error {
 	userID := c.Params("user_id")
-	var user models.User
-	if err := configs.DB.Omit("Password").Where("id = ?", userID).First(&user).Error; err != nil {
+	user, err := services.FindUserByID(configs.DB.Omit("Password"), userID)
+	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusNotFound, "User tidak ditemukan", err)
 	}
 	user.Password = ""
@@ -108,13 +108,12 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	userID := c.Params("user_id")
-	var user models.User
-	result := configs.DB.Where("user_id = ?", userID).First(&user)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+	user, err := services.FindUserByID(configs.DB, userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
 			return helpers.JSONResponse(c, fiber.StatusNotFound, "User tidak ditemukan", nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menemukan user untuk update", result.Error)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menemukan user untuk update", err)
 	}
 	updateData := new(struct {
 		Username   string `json:"username"`
@@ -145,7 +144,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		}
 		user.Password = string(hashedPassword)
 	}
-	result = configs.DB.Save(&user)
+	result := configs.DB.Save(user)
 	if result.Error != nil {
 		if helpers.IsDuplicateKeyError(result.Error) {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Username sudah digunakan", result.Error)
@@ -159,15 +158,14 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	userID := c.Params("user_id")
-	var user models.User
-	result := configs.DB.Where("user_id = ?", userID).First(&user)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+	user, err := services.FindUserByID(configs.DB, userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
 			return helpers.JSONResponse(c, fiber.StatusNotFound, "User not found", nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve user for deletion", result.Error)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve user for deletion", err)
 	}
-	result = configs.DB.Delete(&user)
+	result := configs.DB.Delete(user)
 	if result.Error != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete user", result.Error)
 	}
