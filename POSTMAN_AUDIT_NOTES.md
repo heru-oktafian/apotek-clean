@@ -116,3 +116,25 @@
 ## 12. Aturan audit runtime yang dipertegas
 - Untuk endpoint detail/export yang bergantung pada parent transaction ID, jangan simpulkan bug hanya dari sample Postman lama.
 - Selalu ambil ID valid lebih dulu dari branch aktif sebelum menyimpulkan 500 sebagai bug runtime.
+
+## 13. Final gap summary
+### Real mismatch / perlu diingat
+- List Daily Asset aktif: `GET /api/daily_asset`
+- `GET /api/daily-assets` tidak aktif untuk list (plural tetap dipakai untuk export tertentu)
+- `GET /api/detail-users/:id` adalah kontrak detail user yang kaya (user + branches)
+- `GET /api/users/:user_id` kini hidup sebagai detail sederhana, bukan pengganti `detail-users`
+
+### Legacy contract yang sengaja dipertahankan
+- `GET /api/opname-items` dengan body `{"opname_id":"..."}`
+- Seluruh pola `opname` / `opname-item` tidak dinormalisasi route sesuai keputusan user
+- Flow auth legacy `GET /api/list_branches` dan `POST /api/set_branch` tetap dipertahankan
+
+### Kompatibilitas / alias yang sudah ditambahkan
+- `GET /api/sale-products-combo` -> alias kompatibilitas ke combo sale aktif
+- `GET|PUT|DELETE /api/user-branches/:user-id/:branch-id` -> alias dashed di atas route lama `:user_id/:branch_id`
+
+### False alarm yang sudah terpatahkan
+- `first-stock-items/pdf` sempat 500 karena sample ID lama tidak valid
+- `buy-return-items/pdf` sempat 500 karena sample ID lama tidak valid
+- `sale-return-items/pdf` sempat 500 karena sample ID lama tidak valid
+- Verifikasi runtime sempat menipu karena proses lama di `:9002` memakai binary `(deleted)`
