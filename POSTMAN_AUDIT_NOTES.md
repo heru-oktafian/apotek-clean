@@ -43,3 +43,40 @@
 1. Dokumentasikan kontrak aktif yang sudah pasti benar.
 2. Tandai endpoint ambigu sebagai kandidat normalisasi, jangan diubah dulu tanpa keputusan eksplisit.
 3. Prioritas normalisasi pertama yang paling masuk akal: `opname-items`.
+
+## 5. Keputusan khusus: pengecualian opname
+- Untuk area `opname` dan `opname-item`, kontrak legacy dipertahankan.
+- Route seperti `GET /api/opname-items` tetap dibiarkan seperti perilaku lama dan tidak dinormalisasi.
+- Upaya penambahan route baru untuk normalisasi sudah dibatalkan agar tidak mengubah kontrak yang diinginkan user.
+
+## 6. Temuan lanjutan dari verifikasi runtime
+- `GET /api/sales` -> 200
+- `GET /api/sales-details` -> 200
+- `GET /api/duplicate-receipts` -> 200
+- `GET /api/duplicate-receipts-details` -> 200
+- `GET /api/daily_asset` -> 200
+- `GET /api/daily-assets` -> 404
+- `GET /api/detail-users/:id` -> 200
+- `GET /api/users/:id` -> 404 / tidak cocok untuk kontrak detail user
+
+## 7. Normalisasi underscore ke minus: hasil klasifikasi awal
+### Biarkan dulu
+- `GET /api/list_branches`
+- `POST /api/set_branch`
+
+### Jangan disentuh dulu
+- `GET /api/daily_asset`
+- `GET|PUT|DELETE /api/users/:user_id`
+
+### Kandidat aman untuk alias minus
+- `GET|PUT|DELETE /api/user-branches/:user_id/:branch_id`
+
+## 8. Eksekusi normalisasi selektif yang sudah dilakukan
+- Alias dashed sudah ditambahkan untuk area user-branches tanpa mematikan kontrak lama:
+  - `GET /api/user-branches/:user-id/:branch-id`
+  - `PUT /api/user-branches/:user-id/:branch-id`
+  - `DELETE /api/user-branches/:user-id/:branch-id`
+- Kontrak lama tetap dipertahankan:
+  - `GET /api/user-branches/:user_id/:branch_id`
+  - `PUT /api/user-branches/:user_id/:branch_id`
+  - `DELETE /api/user-branches/:user_id/:branch_id`
