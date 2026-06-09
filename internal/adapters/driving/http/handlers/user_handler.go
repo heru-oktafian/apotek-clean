@@ -56,8 +56,11 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 func (h *UserHandler) GetUserByID(c *fiber.Ctx) error {
 	userID := c.Params("user_id")
 	var user models.User
-	dbQuery := configs.DB.Omit("Password").Where("user_id = ?", userID)
-	return helpers.GetResource(c, dbQuery, &user, userID)
+	if err := configs.DB.Omit("Password").Where("id = ?", userID).First(&user).Error; err != nil {
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "User tidak ditemukan", err)
+	}
+	user.Password = ""
+	return helpers.JSONResponse(c, fiber.StatusOK, "Data user berhasil ditemukan", user)
 }
 
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
