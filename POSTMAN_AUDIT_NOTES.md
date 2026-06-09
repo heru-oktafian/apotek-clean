@@ -138,3 +138,11 @@
 - `buy-return-items/pdf` sempat 500 karena sample ID lama tidak valid
 - `sale-return-items/pdf` sempat 500 karena sample ID lama tidak valid
 - Verifikasi runtime sempat menipu karena proses lama di `:9002` memakai binary `(deleted)`
+
+## 14. Status final daily asset
+- Kontrak aktif yang diterima saat ini:
+  - list: `GET /api/daily_asset`
+  - export: `GET /api/daily-assets/excel`
+- `GET /api/daily-assets` untuk list tetap tidak aktif.
+- Ini diperlakukan sebagai kontrak campuran yang diterima, bukan bug runtime kritis.
+- Keputusan: didokumentasikan apa adanya, tidak dipaksa seragam untuk saat ini.
