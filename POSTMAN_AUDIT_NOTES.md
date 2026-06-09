@@ -101,3 +101,18 @@
   2. build ulang binary `./bin/apotek`
   3. start ulang
   4. pastikan PID baru yang listen memang binary terbaru
+
+## 11. Klarifikasi false alarm pada PDF detail item
+- Tiga endpoint berikut sempat terlihat `500` saat diuji dengan sample ID lama/tidak valid:
+  - `GET /api/first-stock-items/pdf?first_stock_id=...`
+  - `GET /api/buy-return-items/pdf?buy_return_id=...`
+  - `GET /api/sale-return-items/pdf?sale_return_id=...`
+- Setelah diuji ulang menggunakan ID valid dari branch aktif, hasil final menjadi:
+  - `first-stock-items/pdf` -> 200 / `application/pdf`
+  - `buy-return-items/pdf` -> 200 / `application/pdf`
+  - `sale-return-items/pdf` -> 200 / `application/pdf`
+- Kesimpulan: ini bukan bug code atau mismatch route, melainkan false alarm akibat sample data lama yang tidak cocok dengan branch/token aktif.
+
+## 12. Aturan audit runtime yang dipertegas
+- Untuk endpoint detail/export yang bergantung pada parent transaction ID, jangan simpulkan bug hanya dari sample Postman lama.
+- Selalu ambil ID valid lebih dulu dari branch aktif sebelum menyimpulkan 500 sebagai bug runtime.
