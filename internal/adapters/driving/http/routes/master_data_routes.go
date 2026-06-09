@@ -29,6 +29,7 @@ func RegisterMasterDataRoutes(app *fiber.App) {
 	app.Put("/api/products/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), productHandler.UpdateProduct)
 	app.Delete("/api/products/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), productHandler.DeleteProduct)
 	app.Get("/api/sales-products-combo", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), productHandler.CmbProdSale)
+	app.Get("/api/sale-products-combo", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), productHandler.CmbProdSale)
 	app.Get("/api/purchase-products-combo", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), productHandler.CmbProdPurchase)
 
 	app.Get("/api/supplier-categories", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), supplierCategoryHandler.GetAllSupplierCategory)
