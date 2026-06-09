@@ -15,9 +15,12 @@ func RegisterSystemRoutes(app *fiber.App) {
 
 	app.Get("/api/user-branches", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.GetAllUserBranch)
 	app.Get("/api/user-branches/:user_id/:branch_id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.GetUserBranch)
+	app.Get("/api/user-branches/:user-id/:branch-id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.GetUserBranch)
 	app.Post("/api/user-branches", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.CreateUserBranch)
 	app.Put("/api/user-branches/:user_id/:branch_id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.UpdateUserBranch)
+	app.Put("/api/user-branches/:user-id/:branch-id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.UpdateUserBranch)
 	app.Delete("/api/user-branches/:user_id/:branch_id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.DeleteUserBranch)
+	app.Delete("/api/user-branches/:user-id/:branch-id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.DeleteUserBranch)
 	app.Get("/api/detail-users/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), userBranchHandler.GetUserDetails)
 
 	app.Get("/api/dashboard/monthly-profit-report", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), dashboardHandler.MonthlyProfitReport)

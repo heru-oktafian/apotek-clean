@@ -14,6 +14,14 @@ func NewUserBranchHandler() *UserBranchHandler {
 	return &UserBranchHandler{}
 }
 
+func getUserBranchParam(c *fiber.Ctx, primary, fallback string) string {
+	value := c.Params(primary)
+	if value != "" {
+		return value
+	}
+	return c.Params(fallback)
+}
+
 func (h *UserBranchHandler) CreateUserBranch(c *fiber.Ctx) error {
 	var userBranch models.UserBranch
 	if err := c.BodyParser(&userBranch); err != nil {
@@ -26,7 +34,7 @@ func (h *UserBranchHandler) CreateUserBranch(c *fiber.Ctx) error {
 }
 
 func (h *UserBranchHandler) GetUserBranch(c *fiber.Ctx) error {
-	userID := c.Params("user_id")
+	userID := getUserBranchParam(c, "user_id", "user-id")
 	branchID, _ := services.GetBranchID(c)
 	var userBranchDetails []models.UserBranchDetail
 	if err := configs.DB.Table("user_branches").
@@ -41,7 +49,7 @@ func (h *UserBranchHandler) GetUserBranch(c *fiber.Ctx) error {
 }
 
 func (h *UserBranchHandler) UpdateUserBranch(c *fiber.Ctx) error {
-	userID := c.Params("user_id")
+	userID := getUserBranchParam(c, "user_id", "user-id")
 	branchID, _ := services.GetBranchID(c)
 	var userBranch models.UserBranch
 	if err := configs.DB.Where("user_id = ? AND branch_id = ?", userID, branchID).First(&userBranch).Error; err != nil {
@@ -57,8 +65,8 @@ func (h *UserBranchHandler) UpdateUserBranch(c *fiber.Ctx) error {
 }
 
 func (h *UserBranchHandler) DeleteUserBranch(c *fiber.Ctx) error {
-	userID := c.Params("user_id")
-	branchID := c.Params("branch_id")
+	userID := getUserBranchParam(c, "user_id", "user-id")
+	branchID := getUserBranchParam(c, "branch_id", "branch-id")
 	var userBranch models.UserBranch
 	if err := configs.DB.Where("user_id = ? AND branch_id = ?", userID, branchID).First(&userBranch).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusNotFound, "userbranch not found", err)
