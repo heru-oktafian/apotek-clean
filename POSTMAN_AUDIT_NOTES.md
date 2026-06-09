@@ -80,3 +80,24 @@
   - `GET /api/user-branches/:user_id/:branch_id`
   - `PUT /api/user-branches/:user_id/:branch_id`
   - `DELETE /api/user-branches/:user_id/:branch_id`
+
+## 9. Verifikasi final setelah restart runtime yang benar
+- Ditemukan bahwa beberapa pengecekan sebelumnya sempat menipu karena proses lama yang listen di `:9002` memakai binary `(deleted)` lama.
+- Setelah proses lama dimatikan dan binary terbaru dijalankan ulang, hasil final menjadi:
+  - `GET /api/sale-products-combo?search=gliben` -> 200
+  - `GET /api/sales-products-combo?search=gliben` -> 200
+  - `GET /api/users/USR250118132201` -> 200
+  - `GET /api/detail-users/USR250118132201` -> 200
+- Artinya:
+  - alias kompatibilitas `sale-products-combo` sudah aktif
+  - repair `GET /api/users/:user_id` sudah aktif
+  - `detail-users` tetap sehat sebagai kontrak detail user yang lebih kaya
+
+## 10. Catatan operasional penting
+- Bila hasil runtime tampak bertentangan dengan source terbaru, cek dulu proses yang listen di `:9002`.
+- Kasus nyata yang terjadi: proses lama masih memakai executable `/home/jarvis/.dev/apotek-clean/bin/apotek (deleted)`.
+- Pola aman verifikasi runtime:
+  1. matikan PID yang benar-benar listen di `:9002`
+  2. build ulang binary `./bin/apotek`
+  3. start ulang
+  4. pastikan PID baru yang listen memang binary terbaru
