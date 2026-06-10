@@ -124,3 +124,27 @@ Format:
 ### Operational note
 - Beberapa verifikasi sempat menipu saat proses lama yang listen di `:9002` masih memakai binary `(deleted)`.
 - Status compatibility hanya dianggap final setelah PID listener benar-benar diganti ke binary terbaru.
+
+---
+
+## 6. User Branch Contract Clarity Note
+### Old Repo
+- route memakai bentuk `:user_id/:branch_id`
+- ekspektasi alami klien: kedua path param ikut menentukan target relasi user-branch
+
+### New Repo
+- legacy route tetap hidup: `:user_id/:branch_id`
+- alias dashed juga hidup: `:user-id/:branch-id`
+- namun pada behavior aktif tertentu, branch context masih bergantung pada token aktif, bukan murni pada `branch_id` dari path
+
+### Perubahan
+- surface kompatibel sudah ditambahkan
+- tetapi semantics path vs token context belum sepenuhnya intuitif
+
+### Kompatibilitas
+- kompatibel secara route
+- masih ada clarity issue pada perilaku aktual
+
+### Catatan
+- belum diubah sekarang agar tidak memicu perubahan behavior tanpa keputusan eksplisit
+- perlu keputusan terpisah bila ingin path `branch_id` benar-benar menjadi penentu utama target operasi
