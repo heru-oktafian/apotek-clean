@@ -457,6 +457,30 @@ Di `dashboard_handler.go`:
 - Dashboard mendapat sentuhan refactor ringan yang aman.
 - Cost-benefit untuk pembongkaran lebih dalam masih kecil, jadi cukup sehat untuk fase saat ini.
 
+
+## 15. Surface API Audit Consolidation
+
+Fase audit surface API terhadap Postman lama sekarang sudah menghasilkan peta kontrak yang jauh lebih jelas dan beberapa false alarm berhasil dibersihkan.
+
+### Hasil penting
+- `GET /api/users/:user_id` sudah berhasil direpair dan runtime tervalidasi kembali.
+- `GET /api/detail-users/:id` tetap sehat sebagai detail user yang lebih kaya + branches.
+- `GET /api/sale-products-combo` berhasil diaktifkan sebagai alias kompatibilitas untuk reuse combo Sale.
+- `GET /api/opname-items` tetap dipertahankan sebagai legacy contract sesuai keputusan user.
+- `GET /api/daily_asset` tetap menjadi kontrak aktif untuk list, sementara `GET /api/daily-assets/excel` tetap aktif untuk export.
+
+### False alarm yang berhasil dibantah
+- beberapa endpoint PDF detail yang sempat terlihat `500` ternyata hanya memakai sample ID lama/tidak valid:
+  - `first-stock-items/pdf`
+  - `buy-return-items/pdf`
+  - `sale-return-items/pdf`
+- mismatch runtime semu sempat muncul karena proses lama di `:9002` masih memakai binary `(deleted)`.
+- setelah proses listener lama dimatikan dan binary terbaru dijalankan, verifikasi runtime kembali sinkron dengan source.
+
+### Implikasi
+- gap nyata surface API kini menyempit menjadi sedikit kontrak campuran/legacy yang sudah terdokumentasi.
+- banyak area yang semula terlihat bermasalah ternyata sehat bila diuji dengan ID valid dan proses runtime yang benar.
+
 ## Pola kerja yang terbukti aman
 
 Pola refactor yang terbukti paling aman selama fase ini:
