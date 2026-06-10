@@ -73,3 +73,5 @@ Fokus:
 - `GET /api/sale-returns` message list dikoreksi agar menyebut retur penjualan, bukan retur pembelian.
 
 - Area `duplicate receipt` dibersihkan dari beberapa message copy yang masih menyebut `sale` / `sale item`.
+
+- Area `expenses` dan `another-incomes` dirapikan agar response text lebih konsisten, domain-aware, dan lebih siap dikonsumsi frontend.

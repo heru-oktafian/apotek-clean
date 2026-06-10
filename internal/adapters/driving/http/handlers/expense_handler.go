@@ -28,7 +28,7 @@ func CreateExpense(c *fiber.Ctx) error {
 	// Ambil input dari body
 	var input models.ExpenseInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input pengeluaran tidak valid", err)
 	}
 
 	parsedDate, err := services.ParseExpenseDate(input.ExpenseDate, nowWIB)
@@ -36,7 +36,7 @@ func CreateExpense(c *fiber.Ctx) error {
 	payment := input.Payment
 	total := input.TotalExpense
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 	}
 
 	// Map ke struct model
@@ -54,15 +54,15 @@ func CreateExpense(c *fiber.Ctx) error {
 
 	// Simpan expense
 	if err := db.Create(&expense).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create Expense", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat pengeluaran", err)
 	}
 
 	// Buat laporan
 	if err := reports.SyncExpenseReport(db, expense); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create Expense Report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat laporan pengeluaran", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Expense created successfully", expense)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pengeluaran berhasil dibuat", expense)
 }
 
 // UpdateExpenseItem Function
@@ -77,26 +77,26 @@ func UpdateExpense(c *fiber.Ctx) error {
 	// Cari data expense
 	var expense models.Expenses
 	if err := db.First(&expense, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Expense not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Pengeluaran tidak ditemukan", err)
 	}
 
 	// Gunakan struct khusus input
 	var input models.ExpenseInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input pengeluaran tidak valid", err)
 	}
 
 	if err := services.EnsureExpenseEditable(db, expense.ID); err != nil {
 		if err == services.ErrExpenseDataExpiredToEdit {
 			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve expense timestamp", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil timestamp pengeluaran", err)
 	}
 
 	if input.ExpenseDate != "" {
 		parsedDate, err := services.ParseExpenseDate(input.ExpenseDate, nowWIB)
 		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 		}
 		expense.ExpenseDate = parsedDate
 	}
@@ -112,15 +112,15 @@ func UpdateExpense(c *fiber.Ctx) error {
 
 	// Simpan update
 	if err := db.Save(&expense).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update Expense", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui pengeluaran", err)
 	}
 
 	// Sync report
 	if err := reports.SyncExpenseReport(db, expense); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync Expense Report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan laporan pengeluaran", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Expense updated successfully", expense)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pengeluaran berhasil diperbarui", expense)
 }
 
 // DeleteExpenseItem Function
@@ -131,20 +131,20 @@ func DeleteExpense(c *fiber.Ctx) error {
 	// Ambil expense
 	var expense models.Expenses
 	if err := db.First(&expense, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Expense not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Pengeluaran tidak ditemukan", err)
 	}
 
 	// Hapus laporan
 	if err := db.Where("id = ? AND transaction_type = ?", expense.ID, models.Expense).Delete(&models.TransactionReports{}).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete Transaction Report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus laporan transaksi", err)
 	}
 
 	// Hapus expense
 	if err := db.Delete(&expense).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete Expense", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus pengeluaran", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Expense deleted successfully", expense)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pengeluaran berhasil dihapus", expense)
 }
 
 // GetAllExpenses tampilkan semua Expense
@@ -174,7 +174,7 @@ func GetAllExpenses(c *fiber.Ctx) error {
 		if strings.Contains(err.Error(), "format bulan tidak valid") {
 			return helpers.JSONResponse(c, fiber.StatusBadRequest, err.Error(), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get expenses data", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil data pengeluaran", err)
 	}
 
 	// Format data pengeluaran yang diambil
@@ -189,5 +189,5 @@ func GetAllExpenses(c *fiber.Ctx) error {
 		})
 	}
 
-	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Expenses retrieved successfully", search, total, page, totalPages, 10, formattedExpenseData)
+	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Data pengeluaran berhasil diambil", search, total, page, totalPages, 10, formattedExpenseData)
 }

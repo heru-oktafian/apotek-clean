@@ -200,3 +200,20 @@ Format:
 
 ### Catatan
 - create/delete item diverifikasi runtime setelah listener kembali stabil
+
+
+## 10. Expense and Another Income Message Cleanup
+### Old Repo
+- area `expenses` dan `another-incomes` masih memakai banyak response text campuran bahasa Inggris / kapitalisasi domain yang kurang rapi
+
+### New Repo
+- response text utama dibersihkan menjadi lebih konsisten dan domain-aware, misalnya `Data pengeluaran berhasil diambil` dan `Data pendapatan lain berhasil diambil`
+
+### Perubahan
+- perapihan message create/update/delete/list tanpa mengubah alur bisnis
+
+### Kompatibilitas
+- non-breaking, lebih ramah untuk frontend yang menampilkan message langsung
+
+### Catatan
+- runtime tervalidasi setelah listener stale dibersihkan dan PID baru memuat binary terbaru

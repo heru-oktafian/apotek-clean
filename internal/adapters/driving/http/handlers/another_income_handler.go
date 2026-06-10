@@ -31,7 +31,7 @@ func CreateAnotherIncome(c *fiber.Ctx) error {
 	// Ambil input dari body
 	var input models.AnotherIncomeInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input pendapatan lain tidak valid", err)
 	}
 
 	parsedDate, err := services.ParseAnotherIncomeDate(input.IncomeDate, nowWIB)
@@ -39,7 +39,7 @@ func CreateAnotherIncome(c *fiber.Ctx) error {
 	payment := input.Payment
 	total := input.TotalIncome
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 	}
 
 	// Map ke struct model
@@ -57,15 +57,15 @@ func CreateAnotherIncome(c *fiber.Ctx) error {
 
 	// Simpan another_income
 	if err := db.Create(&another_income).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create Another Income", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat pendapatan lain", err)
 	}
 
 	// Buat laporan
 	if err := SyncAnotherIncomeReport(db, another_income); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync Another Income report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan laporan pendapatan lain", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Another Income created successfully", another_income)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pendapatan lain berhasil dibuat", another_income)
 }
 
 // UpdateAnotherIncomeItem Function
@@ -79,26 +79,26 @@ func UpdateAnotherIncome(c *fiber.Ctx) error {
 	// Cari data another_income
 	var another_income models.AnotherIncomes
 	if err := db.First(&another_income, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Another Income not found", nil)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Pendapatan lain tidak ditemukan", nil)
 	}
 
 	// Gunakan struct khusus input
 	var input models.AnotherIncomeInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input pendapatan lain tidak valid", err)
 	}
 
 	if err := services.EnsureAnotherIncomeEditable(db, another_income.ID); err != nil {
 		if err == services.ErrAnotherIncomeDataExpiredToEdit {
 			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve another income timestamp", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil timestamp pendapatan lain", err)
 	}
 
 	if input.IncomeDate != "" {
 		parsedDate, err := services.ParseAnotherIncomeDate(input.IncomeDate, nowWIB)
 		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 		}
 		another_income.IncomeDate = parsedDate
 	}
@@ -114,15 +114,15 @@ func UpdateAnotherIncome(c *fiber.Ctx) error {
 
 	// Simpan update
 	if err := db.Save(&another_income).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update Another Income", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui pendapatan lain", err)
 	}
 
 	// Sync report
 	if err := SyncAnotherIncomeReport(db, another_income); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync Another Income report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan laporan pendapatan lain", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Another Income updated successfully", another_income)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pendapatan lain berhasil diperbarui", another_income)
 }
 
 // DeleteAnotherIncomeItem Function
@@ -133,20 +133,20 @@ func DeleteAnotherIncome(c *fiber.Ctx) error {
 	// Ambil another_income
 	var another_income models.AnotherIncomes
 	if err := db.First(&another_income, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Another Income not found", nil)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Pendapatan lain tidak ditemukan", nil)
 	}
 
 	// Hapus laporan
 	if err := db.Where("id = ? AND transaction_type = ?", another_income.ID, models.Income).Delete(&models.TransactionReports{}).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete transaction report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus laporan transaksi", err)
 	}
 
 	// Hapus another_income
 	if err := db.Delete(&another_income).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete Another Income", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus pendapatan lain", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Another Income deleted successfully", another_income)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pendapatan lain berhasil dihapus", another_income)
 }
 
 // GetAllAnotherIncome tampilkan semua AnotherIncome
@@ -198,7 +198,7 @@ func GetAllAnotherIncomes(c *fiber.Ctx) error {
 	if month != "" {
 		parsedMonth, err := time.Parse("2006-01", month)
 		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid month format", err)
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format bulan tidak valid", err)
 		}
 		startDate := parsedMonth
 		endDate := startDate.AddDate(0, 1, 0).Add(-time.Nanosecond)
@@ -208,12 +208,12 @@ func GetAllAnotherIncomes(c *fiber.Ctx) error {
 
 	// Pertama, hitung total catatan yang sesuai dengan filter
 	if err := countQuery.Count(&total).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to count another income", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghitung data pendapatan lain", err)
 	}
 
 	// Kemudian, ambil data yang dipaginasi dengan pengurutan
 	if err := dataQuery.Order("ex.created_at DESC").Limit(limit).Offset(offset).Find(&AnotherIncome).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get another income data", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil data pendapatan lain", err)
 	}
 
 	// Buat slice baru untuk menampung data yang sudah diformat
@@ -231,7 +231,7 @@ func GetAllAnotherIncomes(c *fiber.Ctx) error {
 	// Hitung total halaman berdasarkan hasil filter
 	totalPages := int(math.Ceil(float64(total) / float64(limit)))
 
-	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Another Incomes retrieved successfully", search, int(total), page, int(totalPages), int(limit), formattedAnotherIncomesData)
+	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Data pendapatan lain berhasil diambil", search, int(total), page, int(totalPages), int(limit), formattedAnotherIncomesData)
 }
 
 // Insert atau update laporan transaksi berdasarkan Another Income / Pendapatan Lain

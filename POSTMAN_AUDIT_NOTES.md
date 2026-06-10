@@ -163,3 +163,5 @@
 - `GET /api/sale-returns` semula masih memakai message copy yang salah (`retur pembelian`). Sudah dikoreksi menjadi `Data retur penjualan berhasil diambil` dan tervalidasi runtime.
 
 - Area `duplicate receipt` dirapikan dari response text yang masih copy dari domain sale, misalnya `Failed to delete sale` menjadi `Failed to delete duplicate receipt` dan sejenisnya. Flow create/delete item tervalidasi runtime setelah listener stabil.
+
+- `GET /api/expenses` dan `GET /api/another-incomes` sudah menampilkan message baru yang lebih konsisten (`Data pengeluaran berhasil diambil`, `Data pendapatan lain berhasil diambil`) setelah restart listener bersih.
