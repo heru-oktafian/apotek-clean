@@ -571,3 +571,5 @@ Buy return, sale return, dan first stock kini sudah berhasil didorong ke level k
 
 
 - Normalisasi transaction support kecil selesai: `GET /api/cmb-prod-sale-returns` kini mengembalikan `200` + `data: []` saat tidak ada item retur yang tersedia; runtime tervalidasi setelah restart listener bersih.
+
+- Perapihan transaction support tambahan: message `GET /api/sale-returns` dikoreksi agar sesuai domain (`retur penjualan`), lalu tervalidasi runtime setelah restart listener.

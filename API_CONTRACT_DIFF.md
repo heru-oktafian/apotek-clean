@@ -166,3 +166,20 @@ Format:
 
 ### Catatan
 - runtime tervalidasi setelah listener stale `:9002` dibersihkan dan binary terbaru dimuat
+
+
+## 8. Sale Return List Message Correction
+### Old Repo
+- `GET /api/sale-returns` mengembalikan message `Data retur pembelian berhasil diambil`
+
+### New Repo
+- `GET /api/sale-returns` mengembalikan message `Data retur penjualan berhasil diambil`
+
+### Perubahan
+- koreksi message agar sesuai domain endpoint
+
+### Kompatibilitas
+- non-breaking, hanya memperbaiki kejelasan response text
+
+### Catatan
+- runtime tervalidasi setelah restart listener baru pada PID aktif yang bersih

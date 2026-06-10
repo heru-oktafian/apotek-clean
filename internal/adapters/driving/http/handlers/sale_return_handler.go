@@ -357,7 +357,7 @@ func GetAllSaleReturns(c *fiber.Ctx) error {
 	return helpers.JSONResponseGetAll(
 		c,
 		fiber.StatusOK,
-		"Data retur pembelian berhasil diambil",
+		"Data retur penjualan berhasil diambil",
 		search,
 		total,
 		page,

@@ -159,3 +159,5 @@
 
 
 - `GET /api/cmb-prod-sale-returns?sale_id=...` dinormalisasi dari empty-state `404` menjadi `200` dengan `data: []` agar konsisten sebagai combo/list endpoint. Verifikasi final dilakukan setelah proses stale `(deleted)` di `:9002` dibunuh dan listener baru dimuat.
+
+- `GET /api/sale-returns` semula masih memakai message copy yang salah (`retur pembelian`). Sudah dikoreksi menjadi `Data retur penjualan berhasil diambil` dan tervalidasi runtime.

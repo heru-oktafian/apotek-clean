@@ -69,3 +69,5 @@ Fokus:
 
 ### Batch D - Transaction support surface progress
 - `GET /api/cmb-prod-sale-returns` empty-state dinormalisasi agar mengembalikan `200` + `data: []` saat tidak ada item retur yang tersedia.
+
+- `GET /api/sale-returns` message list dikoreksi agar menyebut retur penjualan, bukan retur pembelian.
