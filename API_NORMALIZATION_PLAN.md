@@ -71,3 +71,5 @@ Fokus:
 - `GET /api/cmb-prod-sale-returns` empty-state dinormalisasi agar mengembalikan `200` + `data: []` saat tidak ada item retur yang tersedia.
 
 - `GET /api/sale-returns` message list dikoreksi agar menyebut retur penjualan, bukan retur pembelian.
+
+- Area `duplicate receipt` dibersihkan dari beberapa message copy yang masih menyebut `sale` / `sale item`.

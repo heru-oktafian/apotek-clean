@@ -183,3 +183,20 @@ Format:
 
 ### Catatan
 - runtime tervalidasi setelah restart listener baru pada PID aktif yang bersih
+
+
+## 9. Duplicate Receipt Message Cleanup
+### Old Repo
+- beberapa response/error text di area duplicate receipt masih memakai istilah `sale` / `sale item`
+
+### New Repo
+- response/error text dibersihkan agar menyebut `duplicate receipt` / `duplicate receipt item` sesuai domain
+
+### Perubahan
+- koreksi message internal-facing dan client-facing tanpa mengubah alur bisnis
+
+### Kompatibilitas
+- non-breaking, memperjelas domain response
+
+### Catatan
+- create/delete item diverifikasi runtime setelah listener kembali stabil

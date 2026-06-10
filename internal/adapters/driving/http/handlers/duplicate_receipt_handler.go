@@ -381,9 +381,9 @@ func DeleteDuplicateReceipt(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete transaction report", err)
 	}
 
-	// Hapus data penjualan
+	// Hapus data duplicate receipt
 	if err := db.Delete(&duplicate_receipt).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete sale", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete duplicate receipt", err)
 	}
 
 	// Delete laporan profit harian asynchronously
@@ -431,7 +431,7 @@ func CreateDuplicateReceiptItem(c *fiber.Ctx) error {
 		existing.SubTotal = existing.Qty * existing.Price
 
 		if err := db.Save(&existing).Error; err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update sale item", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update duplicate receipt item", err)
 		}
 
 		if err := services.ReduceProductStock(db, item.ProductId, item.Qty); err != nil {
@@ -449,7 +449,7 @@ func CreateDuplicateReceiptItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusOK, "Item updated successfully", existing)
 
 	} else if err != gorm.ErrRecordNotFound {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to find existing sale item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to find existing duplicate receipt item", err)
 	}
 
 	// Data belum ada, buat item baru
@@ -459,7 +459,7 @@ func CreateDuplicateReceiptItem(c *fiber.Ctx) error {
 	item.SubTotal = item.Qty * item.Price
 
 	if err := db.Create(&item).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create sale item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create duplicate receipt item", err)
 	}
 
 	if err := services.ReduceProductStock(db, item.ProductId, item.Qty); err != nil {
@@ -530,7 +530,7 @@ func UpdateDuplicateReceiptItem(c *fiber.Ctx) error {
 	existingItem.SubTotal = product.SalesPrice * updatedData.Qty
 
 	if err := db.Save(&existingItem).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update sale item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update duplicate receipt item", err)
 	}
 
 	// Supporting operations asynchronously
@@ -571,7 +571,7 @@ func DeleteDuplicateReceiptItem(c *fiber.Ctx) error {
 
 	// Hapus item
 	if err := db.Delete(&item).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete sale item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete duplicate receipt item", err)
 	}
 
 	// Supporting operations asynchronously
