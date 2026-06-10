@@ -188,10 +188,7 @@ func (h *DefectaHandler) GetAllDefectas(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to fetch defectas", nil)
 	}
 	totalPages := services.CalculateDefectaTotalPages(limit, total)
-	var formattedDefectas []models.DefectaDetailResponse
-	for _, d := range defectas {
-		formattedDefectas = append(formattedDefectas, models.DefectaDetailResponse{ID: d.ID, DefectaDate: helpers.FormatIndonesianDate(d.DefectaDate), TotalEstimate: d.TotalEstimate, DefectaStatus: string(d.DefectaStatus)})
-	}
+	formattedDefectas := services.BuildDefectaListResponse(defectas)
 	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Defectas retrieved successfully", search, int(total), page, totalPages, limit, formattedDefectas)
 }
 
