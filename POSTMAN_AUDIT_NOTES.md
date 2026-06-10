@@ -146,3 +146,13 @@
 - `GET /api/daily-assets` untuk list tetap tidak aktif.
 - Ini diperlakukan sebagai kontrak campuran yang diterima, bukan bug runtime kritis.
 - Keputusan: didokumentasikan apa adanya, tidak dipaksa seragam untuk saat ini.
+
+## 15. Status final area user setelah runtime benar-benar sinkron
+- Setelah proses lama yang masih memegang `:9002` dimatikan dan binary baru benar-benar jalan, verifikasi final area user menjadi:
+  - `GET /api/users/USR250118132201` -> 200
+  - `PUT /api/users/USR250118132201` -> 200
+  - `GET /api/detail-users/USR250118132201` -> 200
+- Kesimpulan kontrak area user:
+  - `GET /api/users/:user_id` = detail sederhana user
+  - `GET /api/detail-users/:id` = detail user yang lebih kaya + branches
+- Error lama `column "user_id" does not exist` pada update user dinyatakan resolved setelah runtime benar-benar memuat source terbaru.
