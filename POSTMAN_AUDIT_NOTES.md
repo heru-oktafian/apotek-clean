@@ -167,3 +167,5 @@
 - `GET /api/expenses` dan `GET /api/another-incomes` sudah menampilkan message baru yang lebih konsisten (`Data pengeluaran berhasil diambil`, `Data pendapatan lain berhasil diambil`) setelah restart listener bersih.
 
 - `GET /api/purchases`, `GET /api/purchase-items/all/:id`, dan `GET /api/purchases/:id` sudah menampilkan message baru yang lebih konsisten (`Data pembelian berhasil diambil`, `Data item pembelian berhasil diambil`) setelah verifikasi ulang pada runtime final.
+
+- `GET /api/sales`, `GET /api/sales-details`, `GET /api/sale-items/all/:id`, dan `GET /api/sales/:id` sudah menampilkan message baru yang lebih konsisten (`Data penjualan berhasil diambil`, `Data item penjualan berhasil diambil`) setelah restart listener bersih.

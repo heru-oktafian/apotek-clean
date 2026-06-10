@@ -234,3 +234,20 @@ Format:
 
 ### Catatan
 - verifikasi akhir sempat tertunda karena hasil test awal belum sinkron; binary terbaru kemudian dipastikan memuat string baru dan runtime final tervalidasi 200
+
+
+## 12. Sale Response Message Cleanup
+### Old Repo
+- area `sales` masih memakai beberapa response text berbahasa Inggris seperti `Sales retrieved successfully`, `Items retrieved successfully`, dan `Sale retrieved successfully`
+
+### New Repo
+- response text utama dibersihkan menjadi lebih konsisten, misalnya `Data penjualan berhasil diambil` dan `Data item penjualan berhasil diambil`
+
+### Perubahan
+- perapihan message list/detail/item-level/create-update-delete tanpa mengubah alur bisnis
+
+### Kompatibilitas
+- non-breaking, lebih enak untuk frontend yang menampilkan message secara langsung
+
+### Catatan
+- runtime tervalidasi untuk `sales`, `sales-details`, `sale-items/all/:id`, dan `sales/:id` setelah restart listener bersih

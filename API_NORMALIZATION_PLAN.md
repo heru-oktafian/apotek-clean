@@ -77,3 +77,5 @@ Fokus:
 - Area `expenses` dan `another-incomes` dirapikan agar response text lebih konsisten, domain-aware, dan lebih siap dikonsumsi frontend.
 
 - Area `purchases` dirapikan agar message list/detail/item-level lebih konsisten dan domain-aware.
+
+- Area `sales` dirapikan agar message list/detail/item-level lebih konsisten dan domain-aware.

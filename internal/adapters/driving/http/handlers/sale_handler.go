@@ -94,7 +94,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	// Deklarasi 'err' pertama kali di sini
 	err := c.BodyParser(&req)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Body permintaan tidak valid", err)
 	}
 
 	// Get default_member id dari token
@@ -273,7 +273,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	}
 
 	// Berhasil
-	return helpers.JSONResponse(c, fiber.StatusOK, "Sale transaction created successfully", req)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Transaksi penjualan berhasil dibuat", req)
 }
 
 // UpdateSale Function (Modified)
@@ -293,7 +293,7 @@ func UpdateSale(c *fiber.Ctx) error {
 
 	var sale models.Sales
 	if err := db.First(&sale, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Sale not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Penjualan tidak ditemukan", err)
 	}
 
 	total_before += sale.TotalSale
@@ -301,7 +301,7 @@ func UpdateSale(c *fiber.Ctx) error {
 
 	var input models.SaleInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input penjualan tidak valid", err)
 	}
 
 	if input.MemberId != nil {
@@ -324,7 +324,7 @@ func UpdateSale(c *fiber.Ctx) error {
 
 	var items []models.SaleItems
 	if err := db.Where("sale_id = ?", id).Find(&items).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to fetch sale items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item penjualan", err)
 	}
 
 	total := 0
@@ -354,7 +354,7 @@ func UpdateSale(c *fiber.Ctx) error {
 	// Sync laporan penjualan agar tetap konsisten
 	_ = reports.SyncDailyProfitReport(db, branchID, userID, sale.SaleDate, total, profit, total_before, profit_before)
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Sale updated successfully", sale)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Penjualan berhasil diperbarui", sale)
 }
 
 // DeleteSale Function
@@ -365,7 +365,7 @@ func DeleteSale(c *fiber.Ctx) error {
 	// Ambil sale
 	var sale models.Sales
 	if err := db.First(&sale, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Sale not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Penjualan tidak ditemukan", err)
 	}
 
 	// Ambil & hapus item, serta rollback stok
@@ -379,12 +379,12 @@ func DeleteSale(c *fiber.Ctx) error {
 
 	// Hapus laporan transaksi
 	if err := db.Where("id = ? AND transaction_type = ?", sale.ID, models.Sale).Delete(&models.TransactionReports{}).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete transaction report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus laporan transaksi", err)
 	}
 
 	// Hapus data penjualan
 	if err := db.Delete(&sale).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete sale", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus penjualan", err)
 	}
 
 	// Delete laporan profit harian
@@ -393,7 +393,7 @@ func DeleteSale(c *fiber.Ctx) error {
 	// (Opsional) Sync laporan penjualan agar tetap konsisten
 	_ = reports.SyncSaleReport(db, sale)
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Sale deleted successfully", sale)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Penjualan berhasil dihapus", sale)
 }
 
 // CreateSaleItem Function
@@ -406,7 +406,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 	var item models.SaleItems
 
 	if err := c.BodyParser(&item); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input item penjualan tidak valid", err)
 	}
 
 	// Ambil harga jual produk dari tabel products
@@ -453,7 +453,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 			}
 		}()
 
-		return helpers.JSONResponse(c, fiber.StatusOK, "Item updated successfully", existing)
+		return helpers.JSONResponse(c, fiber.StatusOK, "Item penjualan berhasil diperbarui", existing)
 
 	} else if err != gorm.ErrRecordNotFound {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to find existing sale item", err)
@@ -489,7 +489,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 		_ = reports.SyncDailyProfitReport(db, branchID, userID, sale.SaleDate, sale.TotalSale, sale.ProfitEstimate, 0, 0)
 	}()
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item added successfully", item)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item penjualan berhasil ditambahkan", item)
 }
 
 // UpdateSaleItem
@@ -502,7 +502,7 @@ func UpdateSaleItem(c *fiber.Ctx) error {
 
 	var existingItem models.SaleItems
 	if err := db.First(&existingItem, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item tidak ditemukan", err)
 	}
 
 	// Parsing data baru dari body (hanya untuk ambil ProductId dan Qty baru)
@@ -511,7 +511,7 @@ func UpdateSaleItem(c *fiber.Ctx) error {
 		Qty       int    `json:"qty"`
 	}
 	if err := c.BodyParser(&updatedData); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input item penjualan tidak valid", err)
 	}
 
 	// Rollback stok lama
@@ -556,7 +556,7 @@ func UpdateSaleItem(c *fiber.Ctx) error {
 		_ = reports.SyncDailyProfitReport(db, branchID, userID, sale.SaleDate, sale.TotalSale, sale.ProfitEstimate, 0, 0)
 	}()
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item updated successfully", existingItem)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item penjualan berhasil diperbarui", existingItem)
 }
 
 // Delete SaleItem
@@ -565,7 +565,7 @@ func DeleteSaleItem(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var item models.SaleItems
 	if err := db.First(&item, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item tidak ditemukan", err)
 	}
 
 	// Rollback stok
@@ -575,7 +575,7 @@ func DeleteSaleItem(c *fiber.Ctx) error {
 
 	// Hapus item
 	if err := db.Delete(&item).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete sale item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus item penjualan", err)
 	}
 
 	// Supporting operations asynchronously
@@ -585,7 +585,7 @@ func DeleteSaleItem(c *fiber.Ctx) error {
 		}
 	}()
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item deleted successfully", item)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item penjualan berhasil dihapus", item)
 }
 
 // GetAllSales tampilkan semua sale
@@ -641,7 +641,7 @@ func GetAllSales(c *fiber.Ctx) error {
 	return helpers.JSONResponseGetAll(
 		c,
 		fiber.StatusOK,
-		"Sales retrieved successfully",
+		"Data penjualan berhasil diambil",
 		search,
 		total,
 		page,
@@ -701,7 +701,7 @@ func GetAllSalesDetail(c *fiber.Ctx) error {
 			Where("sit.sale_id = ?", s.ID).
 			Order("pro.name ASC").
 			Pluck("pro.name", &itemNames).Error; err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get sale items", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item penjualan", err)
 		}
 
 		// Gabungkan nama item, lalu tambahkan tanggal yang ditambah 7 jam
@@ -725,7 +725,7 @@ func GetAllSalesDetail(c *fiber.Ctx) error {
 	return helpers.JSONResponseGetAll(
 		c,
 		fiber.StatusOK,
-		"Sales retrieved successfully",
+		"Data penjualan berhasil diambil",
 		search,
 		total,
 		page,
@@ -753,10 +753,10 @@ func GetAllSaleItems(c *fiber.Ctx) error {
 
 	// Eksekusi query
 	if err := query.Scan(&SaleItems).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get items failed", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item penjualan", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Items retrieved successfully", SaleItems)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Data item penjualan berhasil diambil", SaleItems)
 }
 
 // GetSaleWithItems menampilkan satu sale beserta semua item-nya
@@ -776,7 +776,7 @@ func GetSaleWithItems(c *fiber.Ctx) error {
 		Scan(&sale).Error
 
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get sale", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil data penjualan", err)
 	}
 
 	// Ambil item pembelian terkait
@@ -790,7 +790,7 @@ func GetSaleWithItems(c *fiber.Ctx) error {
 		Scan(&items).Error
 
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get sale items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item penjualan", err)
 	}
 
 	// Format tanggal secara manual untuk respons ini
@@ -813,7 +813,7 @@ func GetSaleWithItems(c *fiber.Ctx) error {
 	}
 
 	// Panggil JSONResponse yang sudah ada, meneruskan SaleItemResponse sebagai 'data'
-	return helpers.JSONResponse(c, fiber.StatusOK, "Sale retrieved successfully", responseDetail)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Data penjualan berhasil diambil", responseDetail)
 }
 
 // Request body struct untuk transaksi penjualan
