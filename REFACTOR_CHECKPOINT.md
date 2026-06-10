@@ -579,3 +579,5 @@ Buy return, sale return, dan first stock kini sudah berhasil didorong ke level k
 - Batch D dilanjutkan ke area `purchases`: response text list/detail/item-level dibersihkan dan tervalidasi runtime pada listener aktif.
 
 - Batch D dilanjutkan ke area `sales`: response text list/detail/item-level dibersihkan dan tervalidasi runtime pada listener aktif.
+
+- Batch D dilanjutkan lagi ke area `duplicate-receipts`: response text list/detail/item-level dibersihkan dan tervalidasi runtime pada listener aktif.

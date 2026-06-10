@@ -631,7 +631,7 @@ func GetAllDuplicateReceipts(c *fiber.Ctx) error {
 	return helpers.JSONResponseGetAll(
 		c,
 		fiber.StatusOK,
-		"Duplicate receipts retrieved successfully",
+		"Data duplicate receipt berhasil diambil",
 		search,
 		int(total),
 		page,
@@ -691,7 +691,7 @@ func GetAllDuplicateDetail(c *fiber.Ctx) error {
 			Where("dri.duplicate_receipt_id = ?", s.ID).
 			Order("pro.name ASC").
 			Pluck("pro.name", &itemNames).Error; err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get duplicate receipt items", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item duplicate receipt", err)
 		}
 
 		// Gabungkan nama item, lalu tambahkan tanggal yang ditambah 7 jam
@@ -716,7 +716,7 @@ func GetAllDuplicateDetail(c *fiber.Ctx) error {
 	return helpers.JSONResponseGetAll(
 		c,
 		fiber.StatusOK,
-		"Duplicate receipts retrieved successfully",
+		"Data duplicate receipt berhasil diambil",
 		search,
 		int(total),
 		page,
@@ -744,10 +744,10 @@ func GetAllDuplicateItems(c *fiber.Ctx) error {
 
 	// Eksekusi query
 	if err := query.Scan(&DuplicateItems).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get items failed", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item duplicate receipt", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Items retrieved successfully", DuplicateItems)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Data item duplicate receipt berhasil diambil", DuplicateItems)
 }
 
 // GetDuplicateWithItems menampilkan satu duplicate receipt beserta semua item-nya
@@ -765,7 +765,7 @@ func GetDuplicateWithItems(c *fiber.Ctx) error {
 		Where("dr.id = ?", duplicateId).
 		Scan(&duplicate_receipts).Error
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get duplicate receipt", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil data duplicate receipt", err)
 	}
 
 	// Ambil item pembelian terkait
@@ -779,7 +779,7 @@ func GetDuplicateWithItems(c *fiber.Ctx) error {
 		Scan(&items).Error
 
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get duplicate receipt items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item duplicate receipt", err)
 	}
 
 	// Format tanggal secara manual untuk respons ini
@@ -800,5 +800,5 @@ func GetDuplicateWithItems(c *fiber.Ctx) error {
 	}
 
 	// Panggil JSONResponse yang sudah ada, meneruskan DuplicateItemResponse sebagai 'data'
-	return helpers.JSONResponse(c, fiber.StatusOK, "Duplicate receipt retrieved successfully", responseDetail)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Data duplicate receipt berhasil diambil", responseDetail)
 }

@@ -79,3 +79,5 @@ Fokus:
 - Area `purchases` dirapikan agar message list/detail/item-level lebih konsisten dan domain-aware.
 
 - Area `sales` dirapikan agar message list/detail/item-level lebih konsisten dan domain-aware.
+
+- Area `duplicate-receipts` dirapikan lagi agar message list/detail/item-level lebih konsisten dan domain-aware.

@@ -251,3 +251,20 @@ Format:
 
 ### Catatan
 - runtime tervalidasi untuk `sales`, `sales-details`, `sale-items/all/:id`, dan `sales/:id` setelah restart listener bersih
+
+
+## 13. Duplicate Receipt Response Message Cleanup Round 2
+### Old Repo
+- area `duplicate-receipts` masih memakai beberapa response text berbahasa Inggris seperti `Duplicate receipts retrieved successfully`, `Items retrieved successfully`, dan `Duplicate receipt retrieved successfully`
+
+### New Repo
+- response text utama dibersihkan menjadi lebih konsisten, misalnya `Data duplicate receipt berhasil diambil` dan `Data item duplicate receipt berhasil diambil`
+
+### Perubahan
+- perapihan message list/detail/item-level tanpa mengubah alur bisnis
+
+### Kompatibilitas
+- non-breaking, lebih enak untuk frontend yang menampilkan message secara langsung
+
+### Catatan
+- runtime tervalidasi untuk `duplicate-receipts`, `duplicate-receipts-details`, `duplicate-receipts-items/all/:id`, dan `duplicate-receipts/:id`
