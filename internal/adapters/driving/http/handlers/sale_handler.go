@@ -113,7 +113,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	// Menggunakan 'err =' karena 'err' sudah dideklarasikan di atas
 	err = helpers.ValidateStruct(req)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validate failed", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validasi input penjualan gagal", err)
 	}
 	// --- AKHIR VALIDASI INPUT ---
 
@@ -131,7 +131,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	// Mulai transaksi database
 	tx := db.Begin()
 	if tx.Error != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to begin database transaction", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memulai transaksi database", err)
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -165,7 +165,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 				return rollbackSaleWithJSON(c, tx, fiber.StatusNotFound, "Product with ID %s not found", err)
 			}
 
-			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to retrieve product details", err)
+			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal mengambil detail produk", err)
 		}
 		product := lookup.Product
 
@@ -176,7 +176,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 		preparedSaleItem := services.PrepareSaleItem(req.SaleItems[i], lookup, calculatedTotals)
 		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", preparedSaleItem.UpdatedStock.NewStock).Error
 		if err != nil {
-			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update stock for product %s", product.Name), err)
+			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", product.Name), err)
 		}
 
 		calculatedTotals = preparedSaleItem.SaleTotals
@@ -189,19 +189,19 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	// Simpan data Sales setelah kalkulasi total dan profit
 	err = tx.Create(&req.Sale).Error
 	if err != nil {
-		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create sale", err)
+		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat penjualan", err)
 	}
 
 	// Simpan SaleItems dalam batch
 	err = tx.CreateInBatches(&req.SaleItems, len(req.SaleItems)).Error
 	if err != nil {
-		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create sale items", err)
+		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat item penjualan", err)
 	}
 
 	// 3. Simpan data di TransactionReports
 	err = createSaleTransactionReport(tx, req.Sale, nowWIB)
 	if err != nil {
-		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create transaction report", err)
+		return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat laporan transaksi", err)
 	}
 
 	err = syncSaleDailyProfit(tx, req.Sale, nowWIB)
@@ -236,7 +236,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 			if err == gorm.ErrRecordNotFound {
 				return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Member with ID %s not found", req.Sale.MemberId), err)
 			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve member details for points calculation", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil detail member untuk perhitungan poin", err)
 		}
 
 		var memberCategory models.MemberCategory
@@ -246,7 +246,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 			if err == gorm.ErrRecordNotFound {
 				return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Member category with ID %d not found for member %s", member.MemberCategoryId, member.ID), err)
 			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve member category for points calculation", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil kategori member untuk perhitungan poin", err)
 		}
 
 		if memberCategory.PointsConversionRate > 0 {
@@ -257,7 +257,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 			err = tx.Save(&member).Error
 			if err != nil {
 				tx.Rollback()
-				return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update points for member %s", member.ID), err)
+				return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui poin untuk member %s", member.ID), err)
 			}
 		} else {
 			// Optional: Handle case where PointsConversionRate is 0 or less
@@ -269,7 +269,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 	// Commit transaksi jika semua berhasil
 	err = tx.Commit().Error
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to commit database transaction", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal melakukan commit transaksi database", err)
 	}
 
 	// Berhasil
@@ -344,11 +344,11 @@ func UpdateSale(c *fiber.Ctx) error {
 	sale.TotalSale = total - sale.Discount
 
 	if err := db.Save(&sale).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update sale", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui penjualan", err)
 	}
 
 	if err := reports.SyncSaleReport(db, sale); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync sale report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan laporan penjualan", err)
 	}
 
 	// Sync laporan penjualan agar tetap konsisten
@@ -412,7 +412,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 	// Ambil harga jual produk dari tabel products
 	var product models.Product
 	if err := db.Select("sales_price").Where("id = ?", item.ProductId).First(&product).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to fetch product price", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil harga produk", err)
 	}
 
 	// Gunakan sales_price dari produk, abaikan inputan frontend
@@ -428,7 +428,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 		existing.SubTotal = existing.Qty * existing.Price
 
 		if err := db.Save(&existing).Error; err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update sale item", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui item penjualan", err)
 		}
 
 		if err := services.ReduceProductStock(db, item.ProductId, item.Qty); err != nil {
@@ -456,7 +456,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusOK, "Item penjualan berhasil diperbarui", existing)
 
 	} else if err != gorm.ErrRecordNotFound {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to find existing sale item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menemukan item penjualan yang sudah ada", err)
 	}
 
 	// Data belum ada, buat item baru
@@ -466,7 +466,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 	item.SubTotal = item.Qty * item.Price
 
 	if err := db.Create(&item).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create sale item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat item penjualan", err)
 	}
 
 	if err := services.ReduceProductStock(db, item.ProductId, item.Qty); err != nil {
@@ -522,7 +522,7 @@ func UpdateSaleItem(c *fiber.Ctx) error {
 	// Ambil harga jual dari produk baru
 	var product models.Product
 	if err := db.Select("sales_price").Where("id = ?", updatedData.ProductId).First(&product).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get product price", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil harga produk", err)
 	}
 
 	// Kurangi stok baru
@@ -537,7 +537,7 @@ func UpdateSaleItem(c *fiber.Ctx) error {
 	existingItem.SubTotal = product.SalesPrice * updatedData.Qty
 
 	if err := db.Save(&existingItem).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update sale item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui item penjualan", err)
 	}
 
 	// Supporting operations asynchronously

@@ -285,3 +285,22 @@ Format:
 
 ### Catatan
 - detail duplicate receipt serta flow create/delete item tervalidasi runtime setelah restart listener bersih
+
+
+## 15. Sale Error and Support Message Cleanup Round 2
+### Old Repo
+- area `sale` masih menyisakan beberapa response text teknis berbahasa Inggris pada jalur validasi, transaksi, dan item-level seperti `Validate failed`, `Failed to begin database transaction`, `Failed to create sale item`, dan sejenisnya
+
+### New Repo
+- response text user-facing pada jalur validasi, transaksi inti, sinkronisasi report, dan item-level dirapikan ke Bahasa Indonesia yang lebih konsisten
+
+### Perubahan
+- koreksi message validasi input penjualan
+- koreksi message transaksi create/update sale
+- koreksi message pendukung item-level dan report sync
+
+### Kompatibilitas
+- non-breaking, hanya merapikan kontrak message tanpa mengubah flow bisnis
+
+### Catatan
+- list sale dan detail sale tervalidasi runtime pada listener bersih setelah restart

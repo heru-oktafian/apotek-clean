@@ -583,3 +583,5 @@ Buy return, sale return, dan first stock kini sudah berhasil didorong ke level k
 - Batch D dilanjutkan lagi ke area `duplicate-receipts`: response text list/detail/item-level dibersihkan dan tervalidasi runtime pada listener aktif.
 
 - Batch D dilanjutkan ke `duplicate_receipt` round 3: response text user-facing pada jalur create/update/delete dan item-level dibersihkan; flow detail dan create/delete item tervalidasi runtime.
+
+- Area `sale` dirapikan lagi pada lapis kedua: response text validasi, transaksi inti, sinkronisasi report, dan item-level dibersihkan; list dan detail sale tervalidasi runtime.
