@@ -81,3 +81,5 @@ Fokus:
 - Area `sales` dirapikan agar message list/detail/item-level lebih konsisten dan domain-aware.
 
 - Area `duplicate-receipts` dirapikan lagi agar message list/detail/item-level lebih konsisten dan domain-aware.
+
+- Area `duplicate_receipt` dilanjutkan ke round 3 untuk membersihkan response text user-facing pada jalur create/update/delete dan item-level.

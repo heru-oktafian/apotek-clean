@@ -268,3 +268,20 @@ Format:
 
 ### Catatan
 - runtime tervalidasi untuk `duplicate-receipts`, `duplicate-receipts-details`, `duplicate-receipts-items/all/:id`, dan `duplicate-receipts/:id`
+
+
+## 14. Duplicate Receipt Error and Item Message Cleanup Round 3
+### Old Repo
+- area `duplicate-receipt` masih memiliki beberapa response text campuran seperti `Invalid request body`, `Invalid input`, `Duplicate receipt updated successfully`, `Item updated successfully`, dan `Item deleted successfully`
+
+### New Repo
+- response text create/update/delete/item-level dibersihkan menjadi lebih konsisten dan domain-aware
+
+### Perubahan
+- koreksi message user-facing pada jalur body parsing, update duplicate receipt, create/update/delete item duplicate receipt
+
+### Kompatibilitas
+- non-breaking, tetap mempertahankan flow bisnis yang sama
+
+### Catatan
+- detail duplicate receipt serta flow create/delete item tervalidasi runtime setelah restart listener bersih

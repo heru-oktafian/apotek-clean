@@ -87,7 +87,7 @@ func CreateDuplicateReceipt(c *fiber.Ctx) error {
 	// Deklarasi variabel 'err' untuk menangani error
 	err := c.BodyParser(&req)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Body permintaan tidak valid", err)
 	}
 
 	// Get default_member id dari token
@@ -100,7 +100,7 @@ func CreateDuplicateReceipt(c *fiber.Ctx) error {
 
 	err = helpers.ValidateStruct(req)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validate failed", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validasi input duplicate receipt gagal", err)
 	}
 
 	if req.DuplicateReceipt.Payment == "" {
@@ -123,7 +123,7 @@ func CreateDuplicateReceipt(c *fiber.Ctx) error {
 	layout := "2006-01-02" // format harus YYYY-MM-DD
 	parsedDate, err := time.Parse(layout, req.DuplicateReceipt.DuplicateReceiptDate)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 	}
 
 	// 1. Simpan data Duplicate Receipt (induk)
@@ -292,7 +292,7 @@ func CreateDuplicateReceipt(c *fiber.Ctx) error {
 	}
 
 	// Berhasil
-	return helpers.JSONResponse(c, fiber.StatusOK, "Duplicate receipt transaction created successfully", dataResponse)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Transaksi duplicate receipt berhasil dibuat", dataResponse)
 }
 
 // UpdateDuplicateReceipt Function (Modified)
@@ -313,7 +313,7 @@ func UpdateDuplicateReceipt(c *fiber.Ctx) error {
 
 	var duplicate_receipt models.DuplicateReceipts
 	if err := db.First(&duplicate_receipt, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Receipt not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Duplicate receipt tidak ditemukan", err)
 	}
 
 	total_before += duplicate_receipt.TotalDuplicateReceipt
@@ -321,7 +321,7 @@ func UpdateDuplicateReceipt(c *fiber.Ctx) error {
 
 	var input models.DuplicateReceiptInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input duplicate receipt tidak valid", err)
 	}
 
 	if resolvedMemberID := services.ResolveDuplicateReceiptMemberID(db, input.MemberId, defaultMember); resolvedMemberID != "" {
@@ -337,23 +337,23 @@ func UpdateDuplicateReceipt(c *fiber.Ctx) error {
 
 	var items []models.DuplicateReceiptItems
 	if err := db.Where("duplicate_receipt_id = ?", id).Find(&items).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to fetch sale items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item duplicate receipt", err)
 	}
 
 	totals := services.SumDuplicateReceiptItemTotals(items)
 
 	if err := db.Save(&duplicate_receipt).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update Duplicate receipt", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui duplicate receipt", err)
 	}
 
 	if err := reports.SyncDuplicateReceiptReport(db, duplicate_receipt); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync Duplicate receipt report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan laporan duplicate receipt", err)
 	}
 
 	// Sync laporan penjualan agar tetap konsisten
 	_ = reports.SyncDailyProfitReport(db, branchID, userID, duplicate_receipt.DuplicateReceiptDate, totals.Total, totals.Profit, total_before, profit_before)
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Duplicate receipt updated successfully", duplicate_receipt)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Duplicate receipt berhasil diperbarui", duplicate_receipt)
 }
 
 // DeleteDuplicateReceipt Function
@@ -364,7 +364,7 @@ func DeleteDuplicateReceipt(c *fiber.Ctx) error {
 	// Ambil duplicate receipt
 	var duplicate_receipt models.DuplicateReceipts
 	if err := db.First(&duplicate_receipt, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Duplicate receipt not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Duplicate receipt tidak ditemukan", err)
 	}
 
 	// Ambil & hapus item, serta rollback stok
@@ -393,7 +393,7 @@ func DeleteDuplicateReceipt(c *fiber.Ctx) error {
 		}
 	}()
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Duplicate receipt deleted successfully", duplicate_receipt)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Duplicate receipt berhasil dihapus", duplicate_receipt)
 }
 
 type DuplicateReceiptRequest struct {
@@ -409,7 +409,7 @@ func CreateDuplicateReceiptItem(c *fiber.Ctx) error {
 	db := configs.DB
 
 	if err := c.BodyParser(&item); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input item duplicate receipt tidak valid", err)
 	}
 
 	// Ambil harga jual produk dari tabel products
@@ -446,7 +446,7 @@ func CreateDuplicateReceiptItem(c *fiber.Ctx) error {
 			}
 		}()
 
-		return helpers.JSONResponse(c, fiber.StatusOK, "Item updated successfully", existing)
+		return helpers.JSONResponse(c, fiber.StatusOK, "Item duplicate receipt berhasil diperbarui", existing)
 
 	} else if err != gorm.ErrRecordNotFound {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to find existing duplicate receipt item", err)
@@ -485,7 +485,7 @@ func CreateDuplicateReceiptItem(c *fiber.Ctx) error {
 		}
 	}()
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item added successfully", item)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item duplicate receipt berhasil ditambahkan", item)
 }
 
 // UpdateDuplicateReceiptItem Function
@@ -495,7 +495,7 @@ func UpdateDuplicateReceiptItem(c *fiber.Ctx) error {
 
 	var existingItem models.DuplicateReceiptItems
 	if err := db.First(&existingItem, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item tidak ditemukan", err)
 	}
 
 	// Parsing data baru dari body (hanya untuk ambil ProductId dan Qty baru)
@@ -504,7 +504,7 @@ func UpdateDuplicateReceiptItem(c *fiber.Ctx) error {
 		Qty       int    `json:"qty"`
 	}
 	if err := c.BodyParser(&updatedData); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input item duplicate receipt tidak valid", err)
 	}
 
 	// Rollback stok lama
@@ -551,7 +551,7 @@ func UpdateDuplicateReceiptItem(c *fiber.Ctx) error {
 		}
 	}()
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item updated successfully", existingItem)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item duplicate receipt berhasil diperbarui", existingItem)
 }
 
 // Delete DuplicateReceiptItem
@@ -561,7 +561,7 @@ func DeleteDuplicateReceiptItem(c *fiber.Ctx) error {
 
 	var item models.DuplicateReceiptItems
 	if err := db.First(&item, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item not found", err)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item tidak ditemukan", err)
 	}
 
 	// Rollback stok
@@ -582,7 +582,7 @@ func DeleteDuplicateReceiptItem(c *fiber.Ctx) error {
 		}
 	}()
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item deleted successfully", item)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item duplicate receipt berhasil dihapus", item)
 }
 
 // GetAllDuplicateReceipts tampilkan semua duplicate receipt items

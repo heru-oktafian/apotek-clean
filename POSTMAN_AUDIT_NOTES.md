@@ -171,3 +171,5 @@
 - `GET /api/sales`, `GET /api/sales-details`, `GET /api/sale-items/all/:id`, dan `GET /api/sales/:id` sudah menampilkan message baru yang lebih konsisten (`Data penjualan berhasil diambil`, `Data item penjualan berhasil diambil`) setelah restart listener bersih.
 
 - `GET /api/duplicate-receipts`, `GET /api/duplicate-receipts-details`, `GET /api/duplicate-receipts-items/all/:id`, dan `GET /api/duplicate-receipts/:id` sudah menampilkan message baru yang lebih konsisten (`Data duplicate receipt berhasil diambil`, `Data item duplicate receipt berhasil diambil`) setelah restart listener bersih.
+
+- Area `duplicate_receipt` round 3 dirapikan lagi pada jalur body parsing, update duplicate receipt, serta create/update/delete item. Flow detail dan create/delete item tervalidasi runtime setelah restart listener bersih.
