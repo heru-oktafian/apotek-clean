@@ -175,3 +175,5 @@
 - Area `duplicate_receipt` round 3 dirapikan lagi pada jalur body parsing, update duplicate receipt, serta create/update/delete item. Flow detail dan create/delete item tervalidasi runtime setelah restart listener bersih.
 
 - Area `sale` lapis kedua dirapikan pada jalur validasi input, transaksi inti, sinkronisasi report, dan item-level. List sale dan detail sale tervalidasi runtime setelah restart listener bersih.
+
+- Area `purchase` lapis kedua dirapikan pada jalur create/update/delete, item-level, purchase transaction, fixed price, dan product-units support. List, detail, dan item list purchase tervalidasi runtime setelah restart listener bersih.

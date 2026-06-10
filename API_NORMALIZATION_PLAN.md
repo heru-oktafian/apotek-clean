@@ -85,3 +85,5 @@ Fokus:
 - Area `duplicate_receipt` dilanjutkan ke round 3 untuk membersihkan response text user-facing pada jalur create/update/delete dan item-level.
 
 - Area `sale` dilanjutkan ke lapis kedua untuk membersihkan response text validasi, transaksi inti, dan item-level yang masih campuran.
+
+- Area `purchase` dilanjutkan ke lapis kedua untuk membersihkan response text validasi, transaksi inti, item-level, fixed price, dan product-units support.

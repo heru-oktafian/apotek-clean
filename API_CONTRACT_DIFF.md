@@ -304,3 +304,22 @@ Format:
 
 ### Catatan
 - list sale dan detail sale tervalidasi runtime pada listener bersih setelah restart
+
+
+## 16. Purchase Error and Support Message Cleanup Round 2
+### Old Repo
+- area `purchase` masih menyisakan response text teknis berbahasa Inggris pada jalur create/update/delete, item-level, purchase transaction, fixed price, dan product-units support
+
+### New Repo
+- response text user-facing dirapikan ke Bahasa Indonesia yang lebih konsisten pada jalur-jalur support tersebut
+
+### Perubahan
+- koreksi message validasi input pembelian dan body parsing
+- koreksi message create/update purchase dan item-level
+- koreksi message purchase transaction, quota, fixed price, dan product-units support
+
+### Kompatibilitas
+- non-breaking, hanya merapikan kontrak message tanpa mengubah flow bisnis
+
+### Catatan
+- list purchase, detail purchase, dan item list purchase tervalidasi runtime pada listener bersih setelah restart

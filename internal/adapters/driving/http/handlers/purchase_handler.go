@@ -124,14 +124,14 @@ func CreatePurchase(c *fiber.Ctx) error {
 	// Ambil input dari body
 	var input models.PurchaseInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", nil)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input pembelian tidak valid", nil)
 	}
 
 	// Parse tanggal
 	layout := "2006-01-02" // format harus YYYY-MM-DD
 	parsedDate, err := time.Parse(layout, input.PurchaseDate)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", nil)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", nil)
 	}
 
 	// Map ke struct model
@@ -148,12 +148,12 @@ func CreatePurchase(c *fiber.Ctx) error {
 
 	// Simpan purchase
 	if err := db.Create(&purchase).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create purchase", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat pembelian", err)
 	}
 
 	// Buat laporan
 	if err := reports.SyncPurchaseReport(db, purchase); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync purchase report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan laporan pembelian", err)
 	}
 
 	_ = reports.AutoCleanupPurchases(db)
@@ -181,7 +181,7 @@ func UpdatePurchase(c *fiber.Ctx) error {
 		if errors.Is(err, services.ErrDataExpiredToEdit) {
 			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil timestamp pembelian", err)
 	}
 
 	// Gunakan struct input
@@ -215,19 +215,19 @@ func UpdatePurchase(c *fiber.Ctx) error {
 	// Hitung ulang total dari purchase items
 	var items []models.PurchaseItems
 	if err := db.Where("purchase_id = ?", id).Find(&items).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item pembelian", err)
 	}
 
 	purchase.TotalPurchase = services.SumPurchaseItems(items)
 
 	// Simpan perubahan
 	if err := db.Save(&purchase).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update purchase", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui pembelian", err)
 	}
 
 	// Sync report
 	if err := reports.SyncPurchaseReport(db, purchase); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync purchase report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan laporan pembelian", err)
 	}
 
 	_ = reports.AutoCleanupPurchases(db)
@@ -251,19 +251,19 @@ func DeletePurchase(c *fiber.Ctx) error {
 		if errors.Is(err, services.ErrDataExpiredToEdit) {
 			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil timestamp pembelian", err)
 	}
 
 	// Ambil item-item dan rollback stok
 	var items []models.PurchaseItems
 	if err := db.Where("purchase_id = ?", id).Find(&items).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item pembelian", err)
 	}
 
 	for _, item := range items {
 		// Rollback stok ke produk
 		if err := services.ReduceProductStock(db, item.ProductId, item.Qty); err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Failed to rollback stock for product ID %s", item.ProductId), err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Gagal rollback stok untuk product ID %s", item.ProductId), err)
 		}
 	}
 
@@ -299,7 +299,7 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 		if errors.Is(err, services.ErrDataExpiredToEdit) {
 			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil timestamp pembelian", err)
 	}
 
 	// Cek apakah item dengan purchase_id dan product_id sudah ada
@@ -311,18 +311,18 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 		existing.SubTotal = existing.Qty * existing.Price // asumsi pakai harga awal
 
 		if err := db.Save(&existing).Error; err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update existing item", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui item pembelian yang sudah ada", err)
 		}
 
 		if err := syncPurchaseItemPostSave(db, item.PurchaseId, item.ProductId, item.Qty, item.Price); err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync purchase item effects", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan efek item pembelian", err)
 		}
 
 		return helpers.JSONResponse(c, fiber.StatusOK, "Item pembelian berhasil diperbarui", existing)
 
 	} else if err != gorm.ErrRecordNotFound {
 		// Error selain record not found
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to check existing item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memeriksa item pembelian yang sudah ada", err)
 	}
 
 	// Data belum ada, buat item baru
@@ -332,11 +332,11 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 	item.SubTotal = item.Qty * item.Price
 
 	if err := db.Create(&item).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat item pembelian", err)
 	}
 
 	if err := syncPurchaseItemPostSave(db, item.PurchaseId, item.ProductId, item.Qty, item.Price); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync purchase item effects", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menyinkronkan efek item pembelian", err)
 	}
 
 	return helpers.JSONResponse(c, fiber.StatusOK, "Item pembelian berhasil ditambahkan", item)
@@ -349,7 +349,7 @@ func UpdatePurchaseItem(c *fiber.Ctx) error {
 
 	var existingItem models.PurchaseItems
 	if err := db.First(&existingItem, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item not found", nil)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item tidak ditemukan", nil)
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
@@ -357,7 +357,7 @@ func UpdatePurchaseItem(c *fiber.Ctx) error {
 		if errors.Is(err, services.ErrDataExpiredToEdit) {
 			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil timestamp pembelian", err)
 	}
 
 	var updatedItem models.PurchaseItems
@@ -367,12 +367,12 @@ func UpdatePurchaseItem(c *fiber.Ctx) error {
 
 	// Rollback stok lama
 	if err := services.ReduceProductStock(db, existingItem.ProductId, existingItem.Qty); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to rollback old stock", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal rollback stok lama", err)
 	}
 
 	// Tambah stok baru
 	if err := services.AddProductStock(db, updatedItem.ProductId, updatedItem.Qty); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to add new stock", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menambahkan stok baru", err)
 	}
 
 	// Update item
@@ -383,15 +383,15 @@ func UpdatePurchaseItem(c *fiber.Ctx) error {
 
 	if err := db.Save(&existingItem).Error; err != nil {
 		// return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui item pembelian", err)
 	}
 
 	if err := services.UpdateProductPriceIfHigher(db, updatedItem.ProductId, updatedItem.Price); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update product price", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memperbarui harga produk", err)
 	}
 
 	if err := recalculatePurchaseAfterItemChange(db, existingItem.PurchaseId); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to recalculate total purchase", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghitung ulang total pembelian", err)
 	}
 
 	return helpers.JSONResponse(c, fiber.StatusOK, "Item pembelian berhasil diperbarui", existingItem)
@@ -404,7 +404,7 @@ func DeletePurchaseItem(c *fiber.Ctx) error {
 
 	var item models.PurchaseItems
 	if err := db.First(&item, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item not found", nil)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Item tidak ditemukan", nil)
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
@@ -412,12 +412,12 @@ func DeletePurchaseItem(c *fiber.Ctx) error {
 		if errors.Is(err, services.ErrDataExpiredToEdit) {
 			return helpers.JSONResponse(c, fiber.StatusForbidden, err.Error(), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve purchase timestamp", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil timestamp pembelian", err)
 	}
 
 	// Subtract stok
 	if err := services.ReduceProductStock(db, item.ProductId, item.Qty); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to reduce product stock", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengurangi stok produk", err)
 	}
 
 	// Hapus item
@@ -426,7 +426,7 @@ func DeletePurchaseItem(c *fiber.Ctx) error {
 	}
 
 	if err := recalculatePurchaseAfterItemChange(db, item.PurchaseId); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to recalculate total purchase", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghitung ulang total pembelian", err)
 	}
 
 	return helpers.JSONResponse(c, fiber.StatusOK, "Item pembelian berhasil dihapus", item)
@@ -617,7 +617,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 	var req models.PurchaseTransactionRequest
 	err := c.BodyParser(&req)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Body permintaan tidak valid", err)
 	}
 
 	if req.Purchase.Payment == "" {
@@ -629,13 +629,13 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 
 	err = helpers.ValidateStruct(req.Purchase)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validation failed for purchase input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validasi input pembelian gagal", err)
 	}
 
 	for _, item := range req.PurchaseItems {
 		err = helpers.ValidateStruct(item)
 		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validation failed for one or more purchase items", err)
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validasi satu atau lebih item pembelian gagal", err)
 		}
 	}
 
@@ -655,7 +655,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 	// --- Proses Penyimpanan Data ---
 	tx := db.Begin()
 	if tx.Error != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to begin database transaction", tx.Error)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memulai transaksi database", tx.Error)
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -678,7 +678,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 		if err == gorm.ErrRecordNotFound {
 			return rollbackWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Supplier with ID %s not found", req.Purchase.SupplierId), err)
 		}
-		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to retrieve supplier details", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal mengambil detail supplier", err)
 	}
 
 	// var stockTracksToCreate []models.StockTracks
@@ -698,7 +698,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 				}
 				return rollbackWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Product with ID %s not found", req.PurchaseItems[i].ProductId), err)
 			}
-			return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to retrieve purchase item dependencies", err)
+			return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal mengambil dependensi item pembelian", err)
 		}
 
 		preparedTransactionItem := preparePurchaseTransactionItem(purchaseID, req.PurchaseItems[i], lookup, parsedExpiredDate)
@@ -707,7 +707,7 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 
 		err = tx.Model(&models.Product{}).Where("id = ?", preparedTransactionItem.productID).Updates(preparedTransactionItem.productUpdate).Error
 		if err != nil {
-			return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", preparedTransactionItem.productName), err)
+			return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui detail produk (stok/expired_date) untuk produk %s", preparedTransactionItem.productName), err)
 		}
 		calculatedTotalPurchase += preparedTransactionItem.subTotal
 	}
@@ -716,17 +716,17 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 
 	err = tx.Create(&purchase).Error
 	if err != nil {
-		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create purchase", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat pembelian", err)
 	}
 
 	err = tx.CreateInBatches(&purchaseItemsToCreate, len(purchaseItemsToCreate)).Error
 	if err != nil {
-		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create purchase items", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat item pembelian", err)
 	}
 
 	err = createPurchaseTransactionReport(tx, purchase, nowWIB)
 	if err != nil {
-		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to create transaction report for purchase", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat laporan transaksi pembelian", err)
 	}
 
 	err = applyPurchaseQuotaIfNeeded(tx, subscriptionType, req.Purchase.BranchID)
@@ -735,21 +735,21 @@ func CreatePurchaseTransaction(c *fiber.Ctx) error {
 			return rollbackWithJSON(c, tx, fiber.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", req.Purchase.BranchID), err)
 		}
 		if err.Error() == "quota exceeded" {
-			return rollbackWithJSON(c, tx, fiber.StatusBadRequest, "No quota available for branch", err)
+			return rollbackWithJSON(c, tx, fiber.StatusBadRequest, "Tidak ada kuota tersedia untuk cabang", err)
 		}
-		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Failed to apply quota for purchase", err)
+		return rollbackWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal menerapkan kuota untuk pembelian", err)
 	}
 
 	err = tx.Commit().Error
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to commit database transaction", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal melakukan commit transaksi database", err)
 	}
 
 	// --- Akhir: Mengkonstruksi Objek Respon ---
 	response := services.BuildPurchaseTransactionResponse(purchase, supplier.Name, purchaseDate, purchaseItemsForResponse)
 	// --- Akhir Mengkonstruksi Objek Respon ---
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Purchase transaction created successfully", response)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Transaksi pembelian berhasil dibuat", response)
 }
 
 // GetFixedPrice menghitung harga produk setelah konversi satuan
@@ -761,14 +761,14 @@ func GetFixedPrice(c *fiber.Ctx) error {
 
 	// Parsing query parameters
 	if err := c.QueryParser(&req); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid query parameters", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Query parameter tidak valid", err)
 	}
 
 	// Get BranchID from token (jika harga dan konversi spesifik per cabang)
 	// Jika konversi satuan dan harga tidak spesifik cabang, Anda bisa hapus baris ini dan filter branch_id di query
 	branchID, _ := services.GetBranchID(c)
 	if branchID == "" {
-		return helpers.JSONResponse(c, fiber.StatusUnauthorized, "Branch ID not found in token. Unauthorized.", nil)
+		return helpers.JSONResponse(c, fiber.StatusUnauthorized, "Branch ID tidak ditemukan di token. Unauthorized.", nil)
 	}
 
 	// antangin sachet 12
@@ -784,7 +784,7 @@ func GetFixedPrice(c *fiber.Ctx) error {
 		if err == gorm.ErrRecordNotFound {
 			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Product with ID %s not found in branch %s", req.ProductID, branchID), err)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve product details", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil detail produk", err)
 	}
 
 	// --- 2. Dapatkan UnitConversion Value ---
@@ -815,7 +815,7 @@ func GetFixedPrice(c *fiber.Ctx) error {
 				// Untuk endpoint ini, saya akan mengembalikan error karena permintaan Anda eksplisit.
 				return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Unit conversion from %s to %s for product %s not found in branch %s", req.InitID, req.FinalID, req.ProductID, branchID), err)
 			}
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve unit conversion details", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil detail konversi satuan", err)
 		}
 		conversionValue = unitConversion.ValueConv
 	}
@@ -828,7 +828,7 @@ func GetFixedPrice(c *fiber.Ctx) error {
 		FixPrice: fixPrice,
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Fixed price calculated successfully", response)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Harga tetap berhasil dihitung", response)
 }
 
 // GetUnitsByProductIdRequest merepresentasikan body request untuk endpoint GET ini
@@ -848,16 +848,16 @@ func GetProductUnitsWithConvertedPrices(c *fiber.Ctx) error {
 		// 	"message": "Invalid request body",
 		// 	"error":   err.Error(),
 		// })
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Body permintaan tidak valid", err)
 	}
 
 	if err := helpers.ValidateStruct(req); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validation failed for product ID", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Validasi product ID gagal", err)
 	}
 
 	branchID, _ := services.GetBranchID(c)
 	if branchID == "" {
-		return helpers.JSONResponse(c, fiber.StatusUnauthorized, "Branch ID not found in token. Unauthorized.", nil)
+		return helpers.JSONResponse(c, fiber.StatusUnauthorized, "Branch ID tidak ditemukan di token. Unauthorized.", nil)
 	}
 
 	// 1. Dapatkan detail Product, khususnya Product.PurchasePrice (harga dasar) dan Product.UnitId (unit dasar)
@@ -867,7 +867,7 @@ func GetProductUnitsWithConvertedPrices(c *fiber.Ctx) error {
 		if err == gorm.ErrRecordNotFound {
 			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Product with ID %s not found in branch %s", req.ProductID, branchID), err)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve product details", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil detail produk", err)
 	}
 
 	basePurchasePrice := product.PurchasePrice // Harga dasar (per unit dasar produk)
@@ -888,7 +888,7 @@ func GetProductUnitsWithConvertedPrices(c *fiber.Ctx) error {
 	var unitConversions []models.UnitConversion
 	err = db.Where("product_id = ? AND branch_id = ?", req.ProductID, branchID).Find(&unitConversions).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve unit conversions", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil daftar konversi satuan", err)
 	}
 
 	// Kumpulkan semua ID unit yang perlu dicari namanya (dari produk dasar, init_id, dan final_id konversi)
@@ -904,7 +904,7 @@ func GetProductUnitsWithConvertedPrices(c *fiber.Ctx) error {
 	if len(unitIDsToFetch) > 0 {
 		err = db.Where("id IN (?) AND branch_id = ?", unitIDsToFetch, branchID).Find(&units).Error
 		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve unit names", err)
+			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil nama satuan", err)
 		}
 		for _, u := range units {
 			unitNames[u.ID] = u.Name
