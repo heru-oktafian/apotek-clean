@@ -217,3 +217,20 @@ Format:
 
 ### Catatan
 - runtime tervalidasi setelah listener stale dibersihkan dan PID baru memuat binary terbaru
+
+
+## 11. Purchase Response Message Cleanup
+### Old Repo
+- area `purchases` masih memakai beberapa response text berbahasa Inggris seperti `Purchases retrieved successfully`, `Items retrieved successfully`, dan `Purchase retrieved successfully`
+
+### New Repo
+- response text utama dibersihkan menjadi lebih konsisten, misalnya `Data pembelian berhasil diambil` dan `Data item pembelian berhasil diambil`
+
+### Perubahan
+- perapihan message list/detail/item-level/create-update-delete tanpa mengubah alur bisnis
+
+### Kompatibilitas
+- non-breaking, lebih enak untuk frontend yang menampilkan message secara langsung
+
+### Catatan
+- verifikasi akhir sempat tertunda karena hasil test awal belum sinkron; binary terbaru kemudian dipastikan memuat string baru dan runtime final tervalidasi 200

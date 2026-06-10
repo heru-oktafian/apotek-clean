@@ -158,7 +158,7 @@ func CreatePurchase(c *fiber.Ctx) error {
 
 	_ = reports.AutoCleanupPurchases(db)
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Purchase created successfully", purchase)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pembelian berhasil dibuat", purchase)
 }
 
 // UpdatePurchase Function is using to update purchase
@@ -173,7 +173,7 @@ func UpdatePurchase(c *fiber.Ctx) error {
 	// Cari data purchase lama
 	var purchase models.Purchases
 	if err := db.First(&purchase, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Purchase not found", nil)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Pembelian tidak ditemukan", nil)
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
@@ -187,7 +187,7 @@ func UpdatePurchase(c *fiber.Ctx) error {
 	// Gunakan struct input
 	var input models.PurchaseInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input pembelian tidak valid", err)
 	}
 
 	// Cek dan update SupplierID
@@ -200,7 +200,7 @@ func UpdatePurchase(c *fiber.Ctx) error {
 		layout := "2006-01-02"
 		parsedDate, err := time.Parse(layout, input.PurchaseDate)
 		if err != nil {
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 		}
 		purchase.PurchaseDate = parsedDate
 	}
@@ -232,7 +232,7 @@ func UpdatePurchase(c *fiber.Ctx) error {
 
 	_ = reports.AutoCleanupPurchases(db)
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Purchase updated successfully", purchase)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pembelian berhasil diperbarui", purchase)
 }
 
 // DeletePurchase Function
@@ -243,7 +243,7 @@ func DeletePurchase(c *fiber.Ctx) error {
 	// Ambil purchase
 	var purchase models.Purchases
 	if err := db.First(&purchase, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Purchase not found", nil)
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Pembelian tidak ditemukan", nil)
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
@@ -269,20 +269,20 @@ func DeletePurchase(c *fiber.Ctx) error {
 
 	// Hapus semua item dari pembelian
 	if err := db.Where("purchase_id = ?", id).Delete(&models.PurchaseItems{}).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete purchase items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus item pembelian", err)
 	}
 
 	// Hapus laporan transaksi terkait
 	if err := db.Where("id = ? AND transaction_type = ?", purchase.ID, models.Purchase).Delete(&models.TransactionReports{}).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete transaction report", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus laporan transaksi", err)
 	}
 
 	// Hapus purchase
 	if err := db.Delete(&purchase).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete purchase", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus pembelian", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Purchase deleted successfully", purchase)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Pembelian berhasil dihapus", purchase)
 }
 
 // CreatePurchaseItem Function is using to create new purchase item
@@ -291,7 +291,7 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 	var item models.PurchaseItems
 
 	if err := c.BodyParser(&item); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input item pembelian tidak valid", err)
 	}
 
 	// 🔁 Panggil reusable function untuk validasi 1 jam
@@ -318,7 +318,7 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync purchase item effects", err)
 		}
 
-		return helpers.JSONResponse(c, fiber.StatusOK, "Item updated successfully", existing)
+		return helpers.JSONResponse(c, fiber.StatusOK, "Item pembelian berhasil diperbarui", existing)
 
 	} else if err != gorm.ErrRecordNotFound {
 		// Error selain record not found
@@ -339,7 +339,7 @@ func CreatePurchaseItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to sync purchase item effects", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item added successfully", item)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item pembelian berhasil ditambahkan", item)
 }
 
 // Update PurchaseItem is using to update purchase
@@ -362,7 +362,7 @@ func UpdatePurchaseItem(c *fiber.Ctx) error {
 
 	var updatedItem models.PurchaseItems
 	if err := c.BodyParser(&updatedItem); err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Input item pembelian tidak valid", err)
 	}
 
 	// Rollback stok lama
@@ -394,7 +394,7 @@ func UpdatePurchaseItem(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to recalculate total purchase", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item updated successfully", existingItem)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item pembelian berhasil diperbarui", existingItem)
 }
 
 // Delete PurchaseItem is using to delete purchase
@@ -422,14 +422,14 @@ func DeletePurchaseItem(c *fiber.Ctx) error {
 
 	// Hapus item
 	if err := db.Delete(&item).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to delete item", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal menghapus item pembelian", err)
 	}
 
 	if err := recalculatePurchaseAfterItemChange(db, item.PurchaseId); err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to recalculate total purchase", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Item deleted successfully", item)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Item pembelian berhasil dihapus", item)
 }
 
 // Get All Purchases tampilkan semua purchase
@@ -507,7 +507,7 @@ func GetAllPurchases(c *fiber.Ctx) error {
 		})
 	}
 
-	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Purchases retrieved successfully", search, int(total), page, totalPages, limit, formattedPurchasesData)
+	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Data pembelian berhasil diambil", search, int(total), page, totalPages, limit, formattedPurchasesData)
 }
 
 // GetAllPurchaseItems tampilkan semua item berdasarkan purchase_id tanpa pagination
@@ -528,10 +528,10 @@ func GetAllPurchaseItems(c *fiber.Ctx) error {
 
 	// Eksekusi query
 	if err := query.Scan(&PurchaseItems).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get purchase items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item pembelian", err)
 	}
 
-	return helpers.JSONResponse(c, fiber.StatusOK, "Items retrieved successfully", PurchaseItems)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Data item pembelian berhasil diambil", PurchaseItems)
 }
 
 // GetPurchaseWithItems menampilkan satu purchase beserta semua item-nya
@@ -566,7 +566,7 @@ func GetPurchaseWithItems(c *fiber.Ctx) error {
 		Scan(&items).Error
 
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get purchase items", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil item pembelian", err)
 	}
 
 	// Buat slice baru untuk menampung data yang sudah diformat
@@ -602,7 +602,7 @@ func GetPurchaseWithItems(c *fiber.Ctx) error {
 	}
 
 	// Panggil JSONResponse yang sudah ada, meneruskan PurchaseItemResponse sebagai 'data'
-	return helpers.JSONResponse(c, fiber.StatusOK, "Purchase retrieved successfully", responseDetail)
+	return helpers.JSONResponse(c, fiber.StatusOK, "Data pembelian berhasil diambil", responseDetail)
 }
 
 // CreatePurchaseTransaction controller

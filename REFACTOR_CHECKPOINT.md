@@ -575,3 +575,5 @@ Buy return, sale return, dan first stock kini sudah berhasil didorong ke level k
 - Perapihan transaction support tambahan: message `GET /api/sale-returns` dikoreksi agar sesuai domain (`retur penjualan`), lalu tervalidasi runtime setelah restart listener.
 
 - Normalisasi Batch D dilanjutkan ke `expenses` dan `another-incomes`: response text dirapikan agar lebih konsisten dan tervalidasi runtime pada listener baru.
+
+- Batch D dilanjutkan ke area `purchases`: response text list/detail/item-level dibersihkan dan tervalidasi runtime pada listener aktif.
