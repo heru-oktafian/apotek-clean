@@ -251,7 +251,14 @@ func GetSaleItemsForReturn(c *fiber.Ctx) error {
 	}
 
 	if len(results) == 0 {
-		return helpers.JSONResponse(c, fiber.StatusNotFound, "Tidak ada item yang bisa diretur untuk penjualan ini", nil)
+		return helpers.JSONResponse(c, fiber.StatusOK, "Tidak ada item yang bisa diretur untuk penjualan ini", []struct {
+			ProID    string `json:"pro_id"`
+			ProName  string `json:"pro_name"`
+			Stock    int    `json:"stock"`
+			UnitID   string `json:"unit_id"`
+			UnitName string `json:"unit_name"`
+			Price    int    `json:"price"`
+		}{})
 	}
 
 	return helpers.JSONResponse(c, fiber.StatusOK, "Data item retur ditemukan", results)

@@ -148,3 +148,21 @@ Format:
 ### Catatan
 - belum diubah sekarang agar tidak memicu perubahan behavior tanpa keputusan eksplisit
 - perlu keputusan terpisah bila ingin path `branch_id` benar-benar menjadi penentu utama target operasi
+
+
+## 7. Sale Return Combo Empty-state Normalization
+### Old Repo
+- `GET /api/cmb-prod-sale-returns?sale_id=...` dapat mengembalikan `404` saat tidak ada item yang bisa diretur
+
+### New Repo
+- `GET /api/cmb-prod-sale-returns?sale_id=...` mengembalikan `200` dengan `data: []` saat kosong
+
+### Perubahan
+- empty-state combo dibuat lebih frontend-friendly dan konsisten sebagai response list
+
+### Kompatibilitas
+- non-breaking untuk consumer yang memproses sukses-list
+- mengurangi kebutuhan penanganan khusus 404 untuk kondisi data kosong
+
+### Catatan
+- runtime tervalidasi setelah listener stale `:9002` dibersihkan dan binary terbaru dimuat

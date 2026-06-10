@@ -568,3 +568,6 @@ Fase ini berhasil menghasilkan tiga hal penting:
 Purchase tetap menjadi template refactor paling matang.
 Sale dan duplicate receipt sudah mengikuti pola yang stabil.
 Buy return, sale return, dan first stock kini sudah berhasil didorong ke level kualitas yang sebanding untuk fase ini.
+
+
+- Normalisasi transaction support kecil selesai: `GET /api/cmb-prod-sale-returns` kini mengembalikan `200` + `data: []` saat tidak ada item retur yang tersedia; runtime tervalidasi setelah restart listener bersih.

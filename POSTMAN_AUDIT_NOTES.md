@@ -156,3 +156,6 @@
   - `GET /api/users/:user_id` = detail sederhana user
   - `GET /api/detail-users/:id` = detail user yang lebih kaya + branches
 - Error lama `column "user_id" does not exist` pada update user dinyatakan resolved setelah runtime benar-benar memuat source terbaru.
+
+
+- `GET /api/cmb-prod-sale-returns?sale_id=...` dinormalisasi dari empty-state `404` menjadi `200` dengan `data: []` agar konsisten sebagai combo/list endpoint. Verifikasi final dilakukan setelah proses stale `(deleted)` di `:9002` dibunuh dan listener baru dimuat.

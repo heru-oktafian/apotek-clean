@@ -65,3 +65,7 @@ Fokus:
 ### accepted_mixed
 - export daily asset aktif di `/api/daily-assets/excel` sebagai kontrak plural yang tetap dipertahankan
 - area `users` vs `detail-users` diterima sebagai kontrak ganda dengan level detail berbeda
+
+
+### Batch D - Transaction support surface progress
+- `GET /api/cmb-prod-sale-returns` empty-state dinormalisasi agar mengembalikan `200` + `data: []` saat tidak ada item retur yang tersedia.
