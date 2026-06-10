@@ -179,3 +179,5 @@
 - Area `purchase` lapis kedua dirapikan pada jalur create/update/delete, item-level, purchase transaction, fixed price, dan product-units support. List, detail, dan item list purchase tervalidasi runtime setelah restart listener bersih.
 
 - Area `first_stock` lapis kedua dirapikan pada jalur create/update/delete, list/detail, item-level, dan transaksi first stock. List, detail, item list, serta create/delete item tervalidasi runtime setelah restart listener bersih.
+
+- Area `unit_conversion` lapis kedua dirapikan pada jalur create, dependency validation, list pagination, dan combo product conversion. List empty-state dan combo tervalidasi runtime `200`.

@@ -26,11 +26,11 @@ func (h *UnitConversionHandler) CreateUnitConversion(c *fiber.Ctx) error {
 	}
 	branchID, _ := services.GetBranchID(c)
 	if branchID == "" {
-		return helpers.JSONResponse(c, fiber.StatusUnauthorized, "Branch ID not found in token. Unauthorized", nil)
+		return helpers.JSONResponse(c, fiber.StatusUnauthorized, "Branch ID tidak ditemukan di token. Unauthorized.", nil)
 	}
 	tx := db.Begin()
 	if tx.Error != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to begin database transaction", tx.Error)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memulai transaksi database", tx.Error)
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -41,44 +41,44 @@ func (h *UnitConversionHandler) CreateUnitConversion(c *fiber.Ctx) error {
 	checkErr := tx.Where("product_id = ? AND init_id = ? AND final_id = ? AND branch_id = ?", req.ProductId, req.InitId, req.FinalId, branchID).First(&existingConversion).Error
 	if checkErr == nil {
 		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusConflict, fmt.Sprintf("unit conversion from '%s' to '%s' for product '%s' already exists in this branch: duplicate entry", req.InitId, req.FinalId, req.ProductId), nil)
+		return helpers.JSONResponse(c, fiber.StatusConflict, fmt.Sprintf("Konversi satuan dari %s ke %s untuk produk %s sudah ada di cabang ini", req.InitId, req.FinalId, req.ProductId), nil)
 	} else if checkErr != gorm.ErrRecordNotFound {
 		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to check for existing unit conversion", checkErr)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal memeriksa konversi satuan yang sudah ada", checkErr)
 	}
 	var product models.Product
 	if err := tx.Where("id = ? AND branch_id = ?", req.ProductId, branchID).First(&product).Error; err != nil {
 		tx.Rollback()
 		if err == gorm.ErrRecordNotFound {
-			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Product with ID %s not found in branch %s.", req.ProductId, branchID), nil)
+			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Produk dengan ID %s tidak ditemukan di cabang %s", req.ProductId, branchID), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve product for validation", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil produk untuk validasi", err)
 	}
 	var initUnit models.Unit
 	if err := tx.Where("id = ? AND branch_id = ?", req.InitId, branchID).First(&initUnit).Error; err != nil {
 		tx.Rollback()
 		if err == gorm.ErrRecordNotFound {
-			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Initial unit (InitId) with ID %s not found in branch %s.", req.InitId, branchID), nil)
+			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Satuan awal (InitId) dengan ID %s tidak ditemukan di cabang %s", req.InitId, branchID), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve initial unit for validation", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil satuan awal untuk validasi", err)
 	}
 	var finalUnit models.Unit
 	if err := tx.Where("id = ? AND branch_id = ?", req.FinalId, branchID).First(&finalUnit).Error; err != nil {
 		tx.Rollback()
 		if err == gorm.ErrRecordNotFound {
-			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Final unit (FinalId) with ID %s not found in branch %s.", req.FinalId, branchID), nil)
+			return helpers.JSONResponse(c, fiber.StatusNotFound, fmt.Sprintf("Satuan akhir (FinalId) dengan ID %s tidak ditemukan di cabang %s", req.FinalId, branchID), nil)
 		}
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to retrieve final unit for validation", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil satuan akhir untuk validasi", err)
 	}
 	unitConversion := models.UnitConversion{ID: helpers.GenerateID("UNC"), ProductId: req.ProductId, InitId: req.InitId, FinalId: req.FinalId, ValueConv: req.ValueConv, BranchID: branchID}
 	if err := tx.Create(&unitConversion).Error; err != nil {
 		tx.Rollback()
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create unit conversion", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat konversi satuan", err)
 	}
 	if err := tx.Commit().Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to commit database transaction", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal melakukan commit transaksi database", err)
 	}
-	return helpers.JSONResponse(c, fiber.StatusCreated, "Unit conversion created successfully", fiber.Map{"id": unitConversion.ID, "product_id": unitConversion.ProductId, "product_name": product.Name, "init_id": unitConversion.InitId, "init_unit_name": initUnit.Name, "final_id": unitConversion.FinalId, "final_unit_name": finalUnit.Name, "value_conv": unitConversion.ValueConv, "branch_id": unitConversion.BranchID})
+	return helpers.JSONResponse(c, fiber.StatusCreated, "Konversi satuan berhasil dibuat", fiber.Map{"id": unitConversion.ID, "product_id": unitConversion.ProductId, "product_name": product.Name, "init_id": unitConversion.InitId, "init_unit_name": initUnit.Name, "final_id": unitConversion.FinalId, "final_unit_name": finalUnit.Name, "value_conv": unitConversion.ValueConv, "branch_id": unitConversion.BranchID})
 }
 
 func (h *UnitConversionHandler) UpdateUnitConversion(c *fiber.Ctx) error {
@@ -107,9 +107,9 @@ func (h *UnitConversionHandler) GetAllUnitConversion(c *fiber.Ctx) error {
 		Where("unc.branch_id = ?", branchID)
 	_, search, total, page, totalPages, limit, err := helpers.Paginate(c, query, &unitConversions, []string{"pro.name ILIKE ?", "uin.name ILIKE ?", "ufi.name ILIKE ?"})
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get Unit Conversions failed", err.Error())
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil data konversi satuan", err.Error())
 	}
-	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Unit conversions retrieved successfully", search, int(total), page, int(totalPages), int(limit), unitConversions)
+	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Data konversi satuan berhasil diambil", search, int(total), page, int(totalPages), int(limit), unitConversions)
 }
 
 func (h *UnitConversionHandler) CmbProdConv(c *fiber.Ctx) error {
@@ -122,7 +122,7 @@ func (h *UnitConversionHandler) CmbProdConv(c *fiber.Ctx) error {
 		query = query.Where("LOWER(name) LIKE ?", "%"+search+"%")
 	}
 	if err := query.Find(&cmbProducts).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get data", "Failed to get data")
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil data", "Gagal mengambil data")
 	}
 	return helpers.JSONResponse(c, fiber.StatusOK, "Data berhasil ditemukan", cmbProducts)
 }

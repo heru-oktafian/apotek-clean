@@ -342,3 +342,21 @@ Format:
 
 ### Catatan
 - list, detail, item list, dan create/delete item first stock tervalidasi runtime pada listener bersih setelah restart
+
+
+## 18. Unit Conversion Error and Support Message Cleanup Round 2
+### Old Repo
+- area `unit_conversion` masih menyisakan response text teknis berbahasa Inggris pada jalur create, validasi dependency, pagination list, dan combo product conversion
+
+### New Repo
+- response text user-facing dirapikan ke Bahasa Indonesia yang lebih konsisten pada jalur-jalur support tersebut
+
+### Perubahan
+- koreksi message branch/token, begin/commit transaksi, create unit conversion, conflict duplicate, dan lookup dependency
+- koreksi message list unit conversion dan combo product conversion
+
+### Kompatibilitas
+- non-breaking, hanya merapikan kontrak message tanpa mengubah flow bisnis
+
+### Catatan
+- list unit conversion tervalidasi runtime `200` dalam kondisi empty-state (`data: null`) dan combo product conversion tervalidasi runtime `200`

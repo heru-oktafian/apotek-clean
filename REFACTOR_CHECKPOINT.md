@@ -589,3 +589,5 @@ Buy return, sale return, dan first stock kini sudah berhasil didorong ke level k
 - Area `purchase` dirapikan lagi pada lapis kedua: response text validasi, transaksi inti, item-level, fixed price, dan product-units support dibersihkan; list, detail, dan item list purchase tervalidasi runtime.
 
 - Area `first_stock` dirapikan lagi pada lapis kedua: response text validasi, transaksi inti, list/detail, dan item-level dibersihkan; list, detail, item list, serta create/delete item tervalidasi runtime.
+
+- Area `unit_conversion` dirapikan lagi pada lapis kedua: response text create, dependency validation, list pagination, dan combo product conversion dibersihkan; list empty-state dan combo tervalidasi runtime `200`.
