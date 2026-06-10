@@ -53,15 +53,15 @@ Fokus:
 
 ## Baseline Keputusan yang Sudah Ada
 ### done
-- `GET /api/sale-products-combo` alias kompatibilitas aktif ke combo sale
+- `GET /api/sale-products-combo` alias kompatibilitas aktif ke combo sale dan runtime tervalidasi
 - alias dashed untuk `user-branches/:user-id/:branch-id`
-- `GET /api/users/:user_id` sudah direpair sebagai detail sederhana
+- `GET /api/users/:user_id` sudah direpair sebagai detail sederhana dan runtime tervalidasi
+- `GET /api/daily-assets` alias kompatibilitas list sudah aktif di atas `GET /api/daily_asset`
 
 ### legacy_exception
 - `GET /api/opname-items` dengan body `{ "opname_id": "..." }`
 - seluruh area `opname` / `opname-item`
 
 ### accepted_mixed
-- list daily asset aktif di `/api/daily_asset`
-- export daily asset aktif di `/api/daily-assets/excel`
-- plural list `/api/daily-assets` kini kompatibel setelah alias diaktifkan, namun tetap dicatat sebagai hasil compatibility batch
+- export daily asset aktif di `/api/daily-assets/excel` sebagai kontrak plural yang tetap dipertahankan
+- area `users` vs `detail-users` diterima sebagai kontrak ganda dengan level detail berbeda

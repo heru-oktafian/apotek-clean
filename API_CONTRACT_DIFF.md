@@ -109,3 +109,18 @@ Format:
 
 ### Catatan
 - area ini dikecualikan dari program normalisasi atas keputusan user
+
+
+## 6. Runtime-verified compatibility status
+### Verified active after runtime sync
+- `GET /api/sale-products-combo?search=...` -> 200
+- `GET /api/sales-products-combo?search=...` -> 200
+- `GET /api/daily_asset?...` -> 200
+- `GET /api/daily-assets?...` -> 200
+- `GET /api/users/:user_id` -> 200
+- `PUT /api/users/:user_id` -> 200
+- `GET /api/detail-users/:id` -> 200
+
+### Operational note
+- Beberapa verifikasi sempat menipu saat proses lama yang listen di `:9002` masih memakai binary `(deleted)`.
+- Status compatibility hanya dianggap final setelah PID listener benar-benar diganti ke binary terbaru.
