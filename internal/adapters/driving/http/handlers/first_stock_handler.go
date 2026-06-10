@@ -55,12 +55,12 @@ func CreateFirstStock(c *fiber.Ctx) error {
 	// Ambil input dari body
 	var input models.FirstStockInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, http.StatusBadRequest, "Input first stock tidak valid", err)
 	}
 
 	parsedDate, err := services.ParseFirstStockDate(input.FirstStockDate, nowWIB)
 	if err != nil {
-		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err.Error())
+		return helpers.JSONResponse(c, http.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err.Error())
 	}
 
 	// Map ke struct model
@@ -77,15 +77,15 @@ func CreateFirstStock(c *fiber.Ctx) error {
 
 	// Simpan first_stock
 	if err := db.Create(&first_stock).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to create FirstStock", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal membuat first stock", err)
 	}
 
 	// Buat laporan
 	if err := SyncFirstStockReport(db, first_stock); err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to sync FirstStock report", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menyinkronkan laporan first stock", err)
 	}
 
-	return helpers.JSONResponse(c, http.StatusOK, "FirstStock created successfully", first_stock)
+	return helpers.JSONResponse(c, http.StatusOK, "First stock berhasil dibuat", first_stock)
 }
 
 // UpdateFirstStock Function
@@ -100,19 +100,19 @@ func UpdateFirstStock(c *fiber.Ctx) error {
 	// Cari data first_stock lama
 	var first_stock models.FirstStocks
 	if err := db.First(&first_stock, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusNotFound, "FirstStock not found", err)
+		return helpers.JSONResponse(c, http.StatusNotFound, "First stock tidak ditemukan", err)
 	}
 
 	// Gunakan struct input
 	var input models.FirstStockInput
 	if err := c.BodyParser(&input); err != nil {
-		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, http.StatusBadRequest, "Input first stock tidak valid", err)
 	}
 
 	if input.FirstStockDate != "" {
 		parsedDate, err := services.ParseFirstStockDate(input.FirstStockDate, nowWIB)
 		if err != nil {
-			return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD", err)
+			return helpers.JSONResponse(c, http.StatusBadRequest, "Format tanggal tidak valid. Gunakan YYYY-MM-DD", err)
 		}
 		first_stock.FirstStockDate = parsedDate
 	}
@@ -127,7 +127,7 @@ func UpdateFirstStock(c *fiber.Ctx) error {
 	// Hitung ulang total dari first_stock items
 	var items []models.FirstStockItems
 	if err := db.Where("first_stock_id = ?", id).Find(&items).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve FirstStock items", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal mengambil item first stock", err)
 	}
 
 	first_stock.TotalFirstStock = services.SumFirstStockItems(items)
@@ -139,15 +139,15 @@ func UpdateFirstStock(c *fiber.Ctx) error {
 
 	// Simpan perubahan
 	if err := db.Save(&first_stock).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to update FirstStock", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui first stock", err)
 	}
 
 	// Sync report
 	if err := SyncFirstStockReport(db, first_stock); err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to sync FirstStock report", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menyinkronkan laporan first stock", err)
 	}
 
-	return helpers.JSONResponse(c, http.StatusOK, "FirstStock updated successfully", first_stock)
+	return helpers.JSONResponse(c, http.StatusOK, "First stock berhasil diperbarui", first_stock)
 }
 
 // DeleteFirstStock Function
@@ -158,38 +158,38 @@ func DeleteFirstStock(c *fiber.Ctx) error {
 	// Ambil first_stock
 	var first_stock models.FirstStocks
 	if err := db.First(&first_stock, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusNotFound, "FirstStock not found", err)
+		return helpers.JSONResponse(c, http.StatusNotFound, "First stock tidak ditemukan", err)
 	}
 
 	// Ambil item-item dan rollback stok
 	var items []models.FirstStockItems
 	if err := db.Where("first_stock_id = ?", id).Find(&items).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve FirstStock items", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal mengambil item first stock", err)
 	}
 
 	for _, item := range items {
 		// Kurangi stok ke produk
 		if err := services.ReduceProductStock(db, item.ProductId, item.Qty); err != nil {
-			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to reduce product stock", err)
+			return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal mengurangi stok produk", err)
 		}
 	}
 
 	// Hapus semua item dari pembelian
 	if err := db.Where("first_stock_id = ?", id).Delete(&models.FirstStockItems{}).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to delete FirstStock items", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menghapus item first stock", err)
 	}
 
 	// Hapus laporan transaksi terkait
 	if err := db.Where("id = ? AND transaction_type = ?", first_stock.ID, models.FirstStock).Delete(&models.TransactionReports{}).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to delete TransactionReports", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menghapus laporan transaksi", err)
 	}
 
 	// Hapus first_stock
 	if err := db.Delete(&first_stock).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to delete FirstStock", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menghapus first stock", err)
 	}
 
-	return helpers.JSONResponse(c, http.StatusOK, "FirstStock deleted successfully", first_stock)
+	return helpers.JSONResponse(c, http.StatusOK, "First stock berhasil dihapus", first_stock)
 }
 
 // CreateFirstStockItem Function
@@ -198,7 +198,7 @@ func CreateFirstStockItem(c *fiber.Ctx) error {
 	var item models.FirstStockItems
 
 	if err := c.BodyParser(&item); err != nil {
-		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, http.StatusBadRequest, "Input first stock tidak valid", err)
 	}
 
 	// Cek apakah item dengan first_stock_id dan product_id sudah ada
@@ -210,17 +210,17 @@ func CreateFirstStockItem(c *fiber.Ctx) error {
 		existing.SubTotal = existing.Qty * existing.Price // asumsi pakai harga awal
 
 		if err := db.Save(&existing).Error; err != nil {
-			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to update FirstStock item", err)
+			return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui item first stock", err)
 		}
 
 		// Tambah stok
 		if err := services.AddProductStock(db, item.ProductId, item.Qty); err != nil {
-			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to add product stock", err)
+			return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menambahkan stok produk", err)
 		}
 
 		// Update harga produk jika harga baru lebih tinggi dari yang tersimpan di tabel products
 		if err := services.UpdateProductPriceIfHigher(db, item.ProductId, item.Price); err != nil {
-			return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to update product price", err)
+			return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui harga produk", err)
 		}
 
 		go func() {
@@ -229,11 +229,11 @@ func CreateFirstStockItem(c *fiber.Ctx) error {
 			}
 		}()
 
-		return helpers.JSONResponse(c, http.StatusOK, "Item updated successfully", existing)
+		return helpers.JSONResponse(c, http.StatusOK, "Item first stock berhasil diperbarui", existing)
 
 	} else if err != gorm.ErrRecordNotFound {
 		// Error selain record not found
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to retrieve FirstStock item", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal mengambil item first stock", err)
 	}
 
 	// Data belum ada, buat item baru
@@ -243,15 +243,15 @@ func CreateFirstStockItem(c *fiber.Ctx) error {
 	item.SubTotal = item.Qty * item.Price
 
 	if err := db.Create(&item).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to create FirstStock item", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal membuat item first stock", err)
 	}
 
 	if err := services.AddProductStock(db, item.ProductId, item.Qty); err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to add product stock", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menambahkan stok produk", err)
 	}
 
 	if err := services.UpdateProductPriceIfHigher(db, item.ProductId, item.Price); err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to update product price", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui harga produk", err)
 	}
 
 	go func() {
@@ -260,7 +260,7 @@ func CreateFirstStockItem(c *fiber.Ctx) error {
 		}
 	}()
 
-	return helpers.JSONResponse(c, http.StatusOK, "Item added successfully", item)
+	return helpers.JSONResponse(c, http.StatusOK, "Item first stock berhasil ditambahkan", item)
 }
 
 // Update FirstStockItem
@@ -270,22 +270,22 @@ func UpdateFirstStockItem(c *fiber.Ctx) error {
 
 	var existingItem models.FirstStockItems
 	if err := db.First(&existingItem, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusNotFound, "Item not found", err)
+		return helpers.JSONResponse(c, http.StatusNotFound, "Item tidak ditemukan", err)
 	}
 
 	var updatedItem models.FirstStockItems
 	if err := c.BodyParser(&updatedItem); err != nil {
-		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid input", err)
+		return helpers.JSONResponse(c, http.StatusBadRequest, "Input first stock tidak valid", err)
 	}
 
 	// Rollback stok lama
 	if err := services.ReduceProductStock(db, existingItem.ProductId, existingItem.Qty); err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to rollback product stock", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal rollback stok produk", err)
 	}
 
 	// Tambah stok baru
 	if err := services.AddProductStock(db, updatedItem.ProductId, updatedItem.Qty); err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to add product stock", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal menambahkan stok produk", err)
 	}
 
 	// Update item
@@ -295,12 +295,12 @@ func UpdateFirstStockItem(c *fiber.Ctx) error {
 	existingItem.SubTotal = updatedItem.Price * updatedItem.Qty
 
 	if err := db.Save(&existingItem).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to update FirstStock item", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui item first stock", err)
 	}
 
 	// Update harga produk jika harga item lebih tinggi
 	if err := services.UpdateProductPriceIfHigher(db, updatedItem.ProductId, updatedItem.Price); err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to update product price", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui harga produk", err)
 	}
 
 	go func() {
@@ -309,7 +309,7 @@ func UpdateFirstStockItem(c *fiber.Ctx) error {
 		}
 	}()
 
-	return helpers.JSONResponse(c, http.StatusOK, "Item updated successfully", existingItem)
+	return helpers.JSONResponse(c, http.StatusOK, "Item first stock berhasil diperbarui", existingItem)
 }
 
 // Delete FirstStockItem
@@ -319,12 +319,12 @@ func DeleteFirstStockItem(c *fiber.Ctx) error {
 
 	var item models.FirstStockItems
 	if err := db.First(&item, "id = ?", id).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusNotFound, "Item not found", err)
+		return helpers.JSONResponse(c, http.StatusNotFound, "Item tidak ditemukan", err)
 	}
 
 	// Subtract stok
 	if err := services.ReduceProductStock(db, item.ProductId, item.Qty); err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to rollback product stock", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal rollback stok produk", err)
 	}
 
 	// Hapus item
@@ -338,7 +338,7 @@ func DeleteFirstStockItem(c *fiber.Ctx) error {
 		}
 	}()
 
-	return helpers.JSONResponse(c, http.StatusOK, "Item deleted successfully", item)
+	return helpers.JSONResponse(c, http.StatusOK, "Item first stock berhasil dihapus", item)
 }
 
 // Get All FirstStocks tampilkan semua first_stock
@@ -358,7 +358,7 @@ func GetAllFirstStocks(c *fiber.Ctx) error {
 
 	startDate, err := time.Parse("2006-01", month)
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid month format. Use YYYY-MM", nil)
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Format bulan tidak valid. Gunakan YYYY-MM", nil)
 	}
 	endDate := startDate.AddDate(0, 1, 0)
 
@@ -374,10 +374,10 @@ func GetAllFirstStocks(c *fiber.Ctx) error {
 
 	_, search, total, page, totalPages, limit, err := helpers.Paginate(c, query, &FirstStocks, []string{"pur.description ILIKE ?"})
 	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get FirstStocks failed", err.Error())
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil data first stock", err.Error())
 	}
 
-	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "FirstStocks retrieved successfully", search, int(total), page, int(totalPages), int(limit), FirstStocks)
+	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Data first stock berhasil diambil", search, int(total), page, int(totalPages), int(limit), FirstStocks)
 }
 
 // GetAllFirstStockItems tampilkan semua item berdasarkan first_stock_id tanpa pagination
@@ -410,10 +410,10 @@ func GetAllFirstStockItems(c *fiber.Ctx) error {
 
 	// Eksekusi query
 	if err := query.Scan(&FirstStockItems).Error; err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to get items", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal mengambil item first stock", err)
 	}
 
-	return helpers.JSONResponse(c, http.StatusOK, "Items retrieved successfully", FirstStockItems)
+	return helpers.JSONResponse(c, http.StatusOK, "Data item first stock berhasil diambil", FirstStockItems)
 }
 
 // GetFirstStockWithItems menampilkan satu first_stock beserta semua item-nya
@@ -433,7 +433,7 @@ func GetFirstStockWithItems(c *fiber.Ctx) error {
 		Scan(&first_stock).Error
 
 	if err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to get first_stock", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal mengambil data first stock", err)
 	}
 
 	// Ambil item pembelian terkait
@@ -447,13 +447,13 @@ func GetFirstStockWithItems(c *fiber.Ctx) error {
 		Scan(&items).Error
 
 	if err != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to get FirstStock items", err)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal mengambil item first stock", err)
 	}
 
 	// Format tanggal pembelian ke dd-mm-yyyy
 	formattedDate := first_stock.FirstStockDate.Format("02-01-2006")
 
-	return JSONFirstStockWithItemsResponse(c, http.StatusOK, "FirstStock retrieved successfully", first_stockID, first_stock.Description, formattedDate, first_stock.TotalFirstStock, string(first_stock.Payment), items)
+	return JSONFirstStockWithItemsResponse(c, http.StatusOK, "Data first stock berhasil diambil", first_stockID, first_stock.Description, formattedDate, first_stock.TotalFirstStock, string(first_stock.Payment), items)
 }
 
 // CreateFirstStockTransaction controller
@@ -468,7 +468,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	var req models.FirstStockTransactionRequest
 	err := c.BodyParser(&req)
 	if err != nil {
-		return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid request body", err)
+		return helpers.JSONResponse(c, http.StatusBadRequest, "Body permintaan tidak valid", err)
 	}
 
 	// Set Payment secara default karena ini 'first_stock' (tidak ada pembiayaan)
@@ -485,18 +485,18 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	// --- VALIDASI INPUT ---
 	// Validasi input header dan item
 	if err = helpers.ValidateStruct(req.FirstStock); err != nil {
-		return helpers.JSONResponse(c, http.StatusBadRequest, "Validation failed for first stock header input", err)
+		return helpers.JSONResponse(c, http.StatusBadRequest, "Validasi header first stock gagal", err)
 	}
 	for _, item := range req.FirstStockItems {
 		if err = helpers.ValidateStruct(item); err != nil {
-			return helpers.JSONResponse(c, http.StatusBadRequest, "Validation failed for one or more first stock items", err)
+			return helpers.JSONResponse(c, http.StatusBadRequest, "Validasi satu atau lebih item first stock gagal", err)
 		}
 		// Validasi manual tambahan karena tag required di-relax
 		if item.ProductId == "" || item.UnitId == "" {
-			return helpers.JSONResponse(c, http.StatusBadRequest, "product_id and unit_id are required for all items", nil)
+			return helpers.JSONResponse(c, http.StatusBadRequest, "product_id dan unit_id wajib diisi untuk semua item", nil)
 		}
 		if item.Qty <= 0 {
-			return helpers.JSONResponse(c, http.StatusBadRequest, "qty must be greater than 0", nil)
+			return helpers.JSONResponse(c, http.StatusBadRequest, "qty harus lebih besar dari 0", nil)
 		}
 	}
 	// --- AKHIR VALIDASI INPUT ---
@@ -509,7 +509,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	} else {
 		parsedFirstStockDate, err = time.Parse("2006-01-02", req.FirstStock.FirstStockDate)
 		if err != nil {
-			return helpers.JSONResponse(c, http.StatusBadRequest, "Invalid first_stock_date format. Please use `YYYY-MM-DD`.", err.Error())
+			return helpers.JSONResponse(c, http.StatusBadRequest, "Format first_stock_date tidak valid. Gunakan YYYY-MM-DD.", err.Error())
 		}
 	}
 
@@ -523,7 +523,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	// --- Proses Penyimpanan Data (Dalam Transaksi Database) ---
 	tx := db.Begin()
 	if tx.Error != nil {
-		return helpers.JSONResponse(c, http.StatusInternalServerError, "Failed to begin database transaction", tx.Error)
+		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memulai transaksi database", tx.Error)
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -540,7 +540,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	for _, reqItem := range req.FirstStockItems {
 		parsedExpiredDate, err := time.Parse("2006-01-02", reqItem.ExpiredDate)
 		if err != nil {
-			return rollbackFirstStockWithJSON(c, tx, http.StatusBadRequest, fmt.Sprintf("Invalid expired_date format for product %s. Please use `YYYY-MM-DD`.", reqItem.ProductId), err)
+			return rollbackFirstStockWithJSON(c, tx, http.StatusBadRequest, fmt.Sprintf("Format expired_date tidak valid untuk produk %s. Gunakan YYYY-MM-DD.", reqItem.ProductId), err)
 		}
 
 		lookup, err := services.LookupFirstStockDependencies(tx, firstStockHeader.BranchID, reqItem.ProductId, reqItem.UnitId)
@@ -551,7 +551,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 				}
 				return rollbackFirstStockWithJSON(c, tx, http.StatusNotFound, fmt.Sprintf("Product with ID %s not found in branch %s", reqItem.ProductId, firstStockHeader.BranchID), err)
 			}
-			return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to retrieve first stock item dependencies", err)
+			return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Gagal mengambil dependensi item first stock", err)
 		}
 
 		preparedItem := services.PrepareFirstStockItem(helpers.GenerateID("FSI"), firstStockHeader.ID, reqItem, lookup, parsedExpiredDate)
@@ -560,7 +560,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 
 		err = tx.Model(&models.Product{}).Where("id = ?", lookup.Product.ID).Updates(preparedItem.ProductUpdate).Error
 		if err != nil {
-			return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, fmt.Sprintf("Failed to update product details (stock/expired_date) for product %s", lookup.Product.Name), err)
+			return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui detail produk (stok/expired_date) untuk produk %s", lookup.Product.Name), err)
 		}
 
 		calculatedTotalFirstStock += preparedItem.SubTotal
@@ -571,13 +571,13 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	// Simpan data FirstStocks
 	err = tx.Create(&firstStockHeader).Error
 	if err != nil {
-		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to create first stock entry", err)
+		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Gagal membuat data first stock", err)
 	}
 
 	// Simpan FirstStockItems dalam batch
 	err = tx.CreateInBatches(&firstStockItemsToCreate, len(firstStockItemsToCreate)).Error
 	if err != nil {
-		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to create first stock items", err)
+		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Gagal membuat item first stock", err)
 	}
 
 	// PENTING: TransactionReports dan DailyProfitReport TIDAK relevan untuk First Stock
@@ -589,7 +589,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 		if err == gorm.ErrRecordNotFound {
 			return rollbackFirstStockWithJSON(c, tx, http.StatusNotFound, fmt.Sprintf("Branch with ID %s not found", firstStockHeader.BranchID), err)
 		}
-		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Failed to finalize first stock transaction", err)
+		return rollbackFirstStockWithJSON(c, tx, http.StatusInternalServerError, "Gagal menyelesaikan transaksi first stock", err)
 	}
 
 	// --- Mengkonstruksi Objek Respon ---
@@ -609,7 +609,7 @@ func CreateFirstStockTransaction(c *fiber.Ctx) error {
 	}
 	// --- Akhir Mengkonstruksi Objek Respon ---
 
-	return helpers.JSONResponse(c, http.StatusCreated, "First stock transaction created successfully", response)
+	return helpers.JSONResponse(c, http.StatusCreated, "Transaksi first stock berhasil dibuat", response)
 }
 
 // Insert atau update laporan transaksi berdasarkan FirstStocks / Pengeluaran

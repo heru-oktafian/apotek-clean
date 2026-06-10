@@ -177,3 +177,5 @@
 - Area `sale` lapis kedua dirapikan pada jalur validasi input, transaksi inti, sinkronisasi report, dan item-level. List sale dan detail sale tervalidasi runtime setelah restart listener bersih.
 
 - Area `purchase` lapis kedua dirapikan pada jalur create/update/delete, item-level, purchase transaction, fixed price, dan product-units support. List, detail, dan item list purchase tervalidasi runtime setelah restart listener bersih.
+
+- Area `first_stock` lapis kedua dirapikan pada jalur create/update/delete, list/detail, item-level, dan transaksi first stock. List, detail, item list, serta create/delete item tervalidasi runtime setelah restart listener bersih.

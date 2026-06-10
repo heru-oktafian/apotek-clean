@@ -87,3 +87,5 @@ Fokus:
 - Area `sale` dilanjutkan ke lapis kedua untuk membersihkan response text validasi, transaksi inti, dan item-level yang masih campuran.
 
 - Area `purchase` dilanjutkan ke lapis kedua untuk membersihkan response text validasi, transaksi inti, item-level, fixed price, dan product-units support.
+
+- Area `first_stock` dilanjutkan ke lapis kedua untuk membersihkan response text validasi, transaksi inti, list/detail, dan item-level.

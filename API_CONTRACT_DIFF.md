@@ -323,3 +323,22 @@ Format:
 
 ### Catatan
 - list purchase, detail purchase, dan item list purchase tervalidasi runtime pada listener bersih setelah restart
+
+
+## 17. First Stock Error and Support Message Cleanup Round 2
+### Old Repo
+- area `first_stock` masih menyisakan response text teknis berbahasa Inggris pada jalur create/update/delete, item-level, list/detail, dan transaksi first stock
+
+### New Repo
+- response text user-facing dirapikan ke Bahasa Indonesia yang lebih konsisten pada jalur-jalur support tersebut
+
+### Perubahan
+- koreksi message validasi input, format tanggal, dan body parsing
+- koreksi message create/update/delete first stock dan item-level
+- koreksi message list/detail first stock dan transaksi first stock
+
+### Kompatibilitas
+- non-breaking, hanya merapikan kontrak message tanpa mengubah flow bisnis
+
+### Catatan
+- list, detail, item list, dan create/delete item first stock tervalidasi runtime pada listener bersih setelah restart
