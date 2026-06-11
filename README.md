@@ -289,6 +289,17 @@ Opsional ganti port:
 PORT=9017 ./scripts/run_local_regression.sh
 ```
 
+#### Fresh clone smoke
+```bash
+./scripts/fresh_clone_smoke.sh
+```
+
+Opsional ganti port / tmp dir:
+
+```bash
+PORT=9019 TMP_DIR=/tmp/apotek-clean-fresh-smoke ./scripts/fresh_clone_smoke.sh
+```
+
 Untuk detail hasil validasi, lihat:
 - `RUNTIME_AUDIT.md`
 - `REFACTOR_CHECKPOINT.md`
