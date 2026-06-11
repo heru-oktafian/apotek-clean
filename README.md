@@ -113,6 +113,14 @@ Sudah dirapikan untuk:
 
 Gunakan file `.env` di root project.
 
+Langkah awal paling aman:
+
+```bash
+cp .example_env .env
+```
+
+Lalu sesuaikan isi `.env` dengan koneksi database, Redis, dan secret milik environment Anda.
+
 Catatan penting:
 - proses aplikasi akan mencari `.env` di working directory aktif, folder binary, lalu parent folder binary
 - skenario umum `./bin/apotek` dari root repo maupun menjalankan binary dari folder `bin/` sekarang sama-sama didukung

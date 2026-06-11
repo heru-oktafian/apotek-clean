@@ -3,9 +3,6 @@ package services
 import (
 	"math"
 	"time"
-
-	helpers "apotek-clean/helpers"
-	models "apotek-clean/models"
 )
 
 func ParseDailyAssetMonth(input string, fallback time.Time) (string, time.Time, time.Time, error) {
@@ -24,19 +21,4 @@ func ParseDailyAssetMonth(input string, fallback time.Time) (string, time.Time, 
 
 func CalculateDailyAssetTotalPages(total int64, limit int) int {
 	return int(math.Ceil(float64(total) / float64(limit)))
-}
-
-func FormatDailyAssetRows(rows []models.AllDailyAsset) []models.DetailDailyAsset {
-	formatted := make([]models.DetailDailyAsset, 0, len(rows))
-	for _, daily := range rows {
-		formatted = append(formatted, models.DetailDailyAsset{
-			ID:           daily.ID,
-			AssetDate:    helpers.FormatIndonesianDate(daily.AssetDate),
-			AssetValue:   daily.AssetValue,
-			BranchId:     daily.BranchId,
-			AssetAverage: daily.AssetAverage,
-			BranchName:   daily.BranchName,
-		})
-	}
-	return formatted
 }
