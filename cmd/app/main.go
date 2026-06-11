@@ -14,13 +14,18 @@ import (
 
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
-	seeders "apotek-clean/seeders"
-	crons "apotek-clean/services/crons"
 	internalroutes "apotek-clean/internal/adapters/driving/http/routes"
+	seeders "apotek-clean/seeders"
+	services "apotek-clean/services"
+	crons "apotek-clean/services/crons"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
+	if envPath, err := services.ResolveEnvFilePath(); err == nil {
+		if loadErr := godotenv.Load(envPath); loadErr != nil {
+			log.Printf("Warning: gagal load .env dari %s, memakai environment variables: %v", envPath, loadErr)
+		}
+	} else if err := godotenv.Load(); err != nil {
 		log.Println("Warning: .env file not found, using environment variables")
 	}
 

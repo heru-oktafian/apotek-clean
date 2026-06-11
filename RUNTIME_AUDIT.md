@@ -183,7 +183,7 @@ Excel/PDF berikut menghasilkan file valid dengan content type dan magic bytes ya
 ## Known behaviors / catatan penting
 
 1. Auth memang 2 tahap. Token login awal belum cukup untuk akses semua endpoint branch-scoped.
-2. `.env` masih dibaca relatif terhadap working directory saat proses start.
+2. `.env` sekarang di-resolve dengan fallback aman: working directory aktif, folder binary, lalu parent folder binary.
 3. False alarm bisa terjadi bila binary lama masih listen di `:9002`.
 4. Update purchase memiliki time-lock > 1 jam.
 5. Beberapa smoke test transaksi memerlukan data induk valid dan urutan setup yang tepat.

@@ -114,8 +114,8 @@ Sudah dirapikan untuk:
 Gunakan file `.env` di root project.
 
 Catatan penting:
-- proses aplikasi masih membaca `.env` relatif terhadap working directory saat start
-- paling aman jalankan binary dari root project, atau pastikan `.env` tersedia di working directory runtime
+- proses aplikasi akan mencari `.env` di working directory aktif, folder binary, lalu parent folder binary
+- skenario umum `./bin/apotek` dari root repo maupun menjalankan binary dari folder `bin/` sekarang sama-sama didukung
 
 ### Contoh env yang relevan dengan kode saat ini
 
