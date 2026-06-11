@@ -34,6 +34,7 @@ Saat ini repo sudah berada di fase yang **cukup matang untuk clone, configure, b
 - `RUNTIME_AUDIT.md` → baseline audit runtime
 - `REFACTOR_CHECKPOINT.md` → checkpoint refactor terbaru
 - `LEGACY_REPLACEMENT_CHECKLIST.md` → checklist apakah repo baru sudah cukup aman menggantikan repo lama
+- `TEST_COVERAGE_MAP.md` → peta coverage smoke, regression, dan deeper verification saat ini
 - `API_NORMALIZATION_PLAN.md` → strategi normalisasi API non-breaking
 - `API_CONTRACT_DIFF.md` → catatan old vs new contract
 - `POSTMAN_AUDIT_NOTES.md` → audit endpoint terhadap koleksi lama
@@ -428,6 +429,7 @@ Prioritas berikutnya:
 - `RUNTIME_AUDIT.md`
 - `REFACTOR_CHECKPOINT.md`
 - `LEGACY_REPLACEMENT_CHECKLIST.md`
+- `TEST_COVERAGE_MAP.md`
 - `POSTMAN_AUDIT_NOTES.md`
 - `API_NORMALIZATION_PLAN.md`
 - `API_CONTRACT_DIFF.md`
