@@ -1,29 +1,62 @@
-# Apotek-Clean
+# 🏥 Apotek-Clean
 
-Refactor repository **fiber-apotek** ke arah **Clean Architecture** secara bertahap, dengan prioritas utama menjaga perilaku API tetap stabil sambil membersihkan struktur kode modul demi modul.
+> Refactor bertahap dari repository **fiber-apotek** menuju struktur yang lebih rapi dan lebih dekat ke **Clean Architecture**, tanpa gegabah merusak perilaku API yang sudah dipakai.
 
-## Status Saat Ini
+## ✨ Gambaran Singkat
 
-Project ini sudah berada pada fase:
-- runtime utama tervalidasi
-- route internal utama aktif
-- export utama sudah aman
-- modul transaksi besar mulai direfactor bertahap
+Project ini fokus pada 2 hal utama:
 
-Dokumen progres penting:
+- **menjaga kompatibilitas API lama** agar frontend lama tetap aman
+- **membersihkan struktur kode** modul demi modul supaya lebih mudah dirawat, dites, dan dikembangkan
+
+Saat ini repo sudah berada di fase yang **cukup matang untuk clone, configure, build, run, dan konsumsi endpoint aktif utama** yang sudah diaudit runtime.
+
+---
+
+## 📌 Status Saat Ini
+
+### ✅ Yang sudah tervalidasi
+- fresh clone berhasil **build**
+- binary hasil build berhasil **run**
+- auth **2 tahap** berhasil
+- endpoint protected utama berhasil diakses
+- mayoritas master data inti tervalidasi
+- transaksi inti tervalidasi
+- export utama dan banyak export item-level tervalidasi
+- dashboard dan reporting dasar tervalidasi
+
+### ⚠️ Yang perlu tetap diingat
+- belum fair kalau diklaim **100% identik** dengan repo lama di semua sudut perilaku
+- ada beberapa **legacy exception** yang memang sengaja dipertahankan
+- ada beberapa **known behavior** yang harus dibaca sebagai kontrak aktif, bukan bug refactor
+
+📄 Dokumen status paling penting:
 - `RUNTIME_AUDIT.md` → baseline audit runtime
 - `REFACTOR_CHECKPOINT.md` → checkpoint refactor terbaru
-- `LEGACY_REPLACEMENT_CHECKLIST.md` → checklist operasional apakah repo baru sudah cukup aman menggantikan repo lama
+- `LEGACY_REPLACEMENT_CHECKLIST.md` → checklist apakah repo baru sudah cukup aman menggantikan repo lama
+- `API_NORMALIZATION_PLAN.md` → strategi normalisasi API non-breaking
+- `API_CONTRACT_DIFF.md` → catatan old vs new contract
+- `POSTMAN_AUDIT_NOTES.md` → audit endpoint terhadap koleksi lama
 
-## Fokus Refactor
+---
 
-Tujuan fase saat ini:
-- menjaga kompatibilitas API lama
-- memindahkan alur HTTP utama ke `internal/adapters/driving/http`
-- mengurangi ketergantungan ke struktur legacy secara bertahap
-- merapikan handler besar menjadi helper/service kecil yang lebih aman dirawat
+## 🎯 Tujuan Refactor
 
-## Struktur Project Saat Ini
+Project ini **bukan** rewrite besar sekali jalan.
+
+Pendekatan yang dipakai:
+
+1. **pertahankan behavior API dulu**
+2. **pecah bagian padat sedikit demi sedikit**
+3. **build + smoke test setelah langkah aman**
+4. **commit kecil langsung ke `main` bila sudah stabil**
+
+Kenapa begitu?
+Karena target utamanya bukan sekadar kode lebih cantik, tapi **repo baru benar-benar bisa menggantikan repo lama secara aman**.
+
+---
+
+## 🧱 Struktur Project
 
 ```text
 apotek-clean/
@@ -43,37 +76,228 @@ apotek-clean/
 ├── services/
 ├── seeders/
 ├── schedulers/
-├── controllers/        # sisa transisi legacy yang belum seluruhnya dihapus
-├── routes/             # sisa transisi legacy yang belum seluruhnya dihapus
+├── controllers/                    # sisa transisi legacy
+├── routes/                         # sisa transisi legacy
+├── menus.json
 ├── RUNTIME_AUDIT.md
 ├── REFACTOR_CHECKPOINT.md
 ├── LEGACY_REPLACEMENT_CHECKLIST.md
 └── README.md
 ```
 
-## Modul yang Sudah Stabil di Runtime
+### Poin penting struktur saat ini
+- **entry point resmi** aplikasi: `cmd/app/main.go`
+- route utama sekarang dipusatkan di:
+  - `internal/adapters/driving/http/routes`
+- handler aktif utama sekarang dipusatkan di:
+  - `internal/adapters/driving/http/handlers`
+- struktur legacy masih ada sebagian, tapi sudah makin dipersempit dari jalur aktif runtime
+
+---
+
+## ✅ Modul yang Sudah Stabil di Runtime
 
 Sudah tervalidasi melalui smoke test runtime:
-- auth dua tahap
-- branches
-- users
-- master data utama
-- purchase
-- sale
-- buy return
-- sale return
-- duplicate receipt
-- first stock
-- opname basic
-- reporting dasar
-- export Excel/PDF utama
-- export item-level
-- export audit/report/dashboard
 
-## Progress Refactor Modul
+- 🔐 auth dua tahap
+- 🏢 branches
+- 👤 users
+- 📦 master data utama
+- 🛒 purchase
+- 💳 sale
+- ↩️ buy return
+- 🔁 sale return
+- 🧾 duplicate receipt
+- 📥 first stock
+- 🧮 opname basic
+- 📊 reporting dasar
+- 📄 export Excel/PDF utama
+- 🧩 export item-level
+- 📈 export audit / report / dashboard
 
-### Purchase
-Paling jauh direfactor saat ini.
+---
+
+## 🚀 Quick Start
+
+### 1) Clone repository
+
+```bash
+git clone <repo-url>
+cd apotek-clean
+```
+
+### 2) Siapkan environment file
+
+```bash
+cp .example_env .env
+```
+
+Lalu sesuaikan `.env` dengan environment Anda.
+
+### 3) Install dependency
+
+```bash
+go mod tidy
+```
+
+### 4) Jalankan aplikasi
+
+#### Opsi A, langsung dengan Go
+
+```bash
+go run ./cmd/app/main.go
+```
+
+#### Opsi B, build binary lalu jalankan
+
+```bash
+go build -o ./bin/apotek ./cmd/app
+./bin/apotek
+```
+
+---
+
+## ⚙️ Konfigurasi Environment
+
+Gunakan file `.env` di root project.
+
+### Contoh minimal env yang sesuai runtime saat ini
+
+```env
+PORT=9002
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_USER=postgres
+DB_PASS=postgres
+DB_NAME=apotek_clean
+JWT_SECRET_KEY=change-me
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASS=
+REDIS_SHORT=0
+PROJECT_NAME=core-dev
+APPNAME=Dev.Core
+```
+
+### Catatan penting env
+
+Beberapa nama env **masih mengikuti kode lama**, jadi perhatikan ini:
+
+- ✅ `DB_PASS`
+- ❌ **bukan** `DB_PASSWORD`
+
+- ✅ `REDIS_HOST`
+- ✅ `REDIS_PORT`
+- ✅ `REDIS_PASS`
+- ✅ `REDIS_SHORT`
+- ❌ **bukan** `REDIS_ADDR`
+
+- ✅ `JWT_SECRET_KEY`
+
+### Path resolution yang sudah dihardening
+
+Sekarang aplikasi akan mencari file penting dari project root dengan lebih aman, jadi tidak mudah rusak hanya karena beda working directory.
+
+Yang sudah diamankan:
+- `.env`
+- `menus.json`
+- beberapa file project path penting lain
+
+Artinya skenario ini sekarang sama-sama didukung:
+- menjalankan app dari root repo
+- menjalankan binary dari folder `bin/`
+
+---
+
+## 🔐 Auth Flow yang Dipakai Runtime
+
+Project ini memakai **auth 2 tahap**.
+
+### Tahap 1
+`POST /api/login`
+
+Hasilnya token awal, tapi token ini **belum cukup** untuk semua endpoint branch-scoped.
+
+### Tahap 2
+1. `GET /api/list_branches`
+2. `POST /api/set_branch`
+
+Baru setelah itu Anda dapat token branch-scoped yang dipakai untuk endpoint protected utama.
+
+---
+
+## 🧪 Build dan Verifikasi
+
+### Build utama
+
+```bash
+go build -o ./bin/apotek ./cmd/app
+```
+
+### Unit / package build check
+
+```bash
+go test ./...
+```
+
+### Runtime smoke test yang biasa dipakai
+
+- login
+- list branches
+- set branch
+- akses endpoint protected utama
+- smoke test transaksi penting
+- cek stok naik/turun/rollback
+- cek report
+- cek export
+
+Untuk detail hasil validasi, lihat:
+- `RUNTIME_AUDIT.md`
+- `REFACTOR_CHECKPOINT.md`
+- `LEGACY_REPLACEMENT_CHECKLIST.md`
+
+---
+
+## 🧩 Kompatibilitas dengan Repo Lama
+
+Secara praktis, repo ini dibangun supaya **cukup aman menggantikan repo lama** untuk alur operasional utama.
+
+### Yang sudah kuat
+- clone → configure → build → run
+- auth 2 tahap
+- konsumsi endpoint aktif utama
+- banyak kontrak utama tetap kompatibel
+- beberapa alias compatibility sudah ditambahkan untuk mengurangi risiko break di frontend
+
+### Legacy exception yang sengaja dipertahankan
+Area berikut **tidak dipaksa dinormalisasi** karena diperlakukan sebagai kontrak legacy yang tetap hidup:
+
+- `opname`
+- `opname-item`
+
+Contoh penting:
+- `GET /api/opname-items/` tetap mengikuti pola legacy dengan body JSON:
+
+```json
+{
+  "opname_id": "..."
+}
+```
+
+### Known behavior yang harus dipahami
+- area `returns` tidak boleh diasumsikan CRUD penuh seperti transaksi lain
+- beberapa sample ID di koleksi lama memang sudah usang, jadi bisa terlihat seolah route bermasalah padahal sample-nya yang tidak valid
+- false alarm runtime bisa muncul kalau port `:9002` masih dipegang binary lama `(deleted)`
+
+Kalau butuh ringkasan operasional paling jujur, baca:
+- `LEGACY_REPLACEMENT_CHECKLIST.md`
+
+---
+
+## 🛠️ Progress Refactor Modul
+
+### 🛒 Purchase
+Modul paling jauh direfactor saat ini.
 Sudah dirapikan bertahap untuk:
 - editability helper
 - total helper
@@ -89,9 +313,8 @@ Sudah dirapikan bertahap untuk:
 - transaction orchestration helper lokal
 - rollback response helper
 
-### Sale
-Sudah mulai mengikuti pola purchase.
-Sudah dirapikan untuk:
+### 💳 Sale
+Sudah mengikuti pola purchase dengan perapihan pada:
 - editability helper
 - totals calculation helper
 - rollback response helper
@@ -100,9 +323,8 @@ Sudah dirapikan untuk:
 - sale item preparation
 - orchestration helper
 
-### Duplicate Receipt
-Sudah mulai mengikuti pola yang sama.
-Sudah dirapikan untuk:
+### 🧾 Duplicate Receipt
+Sudah mengikuti pola yang sama pada area:
 - editability helper
 - totals helper
 - product lookup
@@ -111,116 +333,39 @@ Sudah dirapikan untuk:
 - wiring handler ke helper
 - orchestration helper
 
-## Konfigurasi Environment
+---
 
-Gunakan file `.env` di root project.
+## 🗺️ Roadmap Terdekat
 
-Langkah awal paling aman:
+Prioritas berikutnya:
 
-```bash
-cp .example_env .env
-```
+- menutup known gap yang masih realistis dirapikan
+- terus mengurangi ketergantungan ke struktur legacy
+- menjaga supaya surface API tetap frontend-friendly
+- memperkuat status repo baru sebagai pengganti operasional repo lama
 
-Lalu sesuaikan isi `.env` dengan koneksi database, Redis, dan secret milik environment Anda.
+---
 
-Catatan penting:
-- proses aplikasi akan mencari `.env` di working directory aktif, folder binary, lalu parent folder binary
-- skenario umum `./bin/apotek` dari root repo maupun menjalankan binary dari folder `bin/` sekarang sama-sama didukung
+## 📎 Catatan Tambahan
 
-### Contoh env yang relevan dengan kode saat ini
+- fitur yang bergantung pada Google Drive dapat memerlukan `credentials.json`
+- file tersebut **bukan blocker** untuk startup inti aplikasi, login, dan akses endpoint dasar
+- refactor dilakukan incremental, bukan rewrite besar sekali jalan
+- preferensi kerja repo ini adalah **lebih baik commit kecil yang lolos build dan smoke test** daripada refactor besar yang rawan regression
 
-```env
-PORT=9002
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_USER=postgres
-DB_PASS=postgres
-DB_NAME=apotek_clean
-JWT_SECRET_KEY=change-me
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-REDIS_PASS=
-REDIS_SHORT=0
-```
+---
 
-Perhatikan bahwa beberapa nama env masih mengikuti kode lama, misalnya:
-- `DB_PASS` bukan `DB_PASSWORD`
-- `JWT_SECRET_KEY` masih dipakai
+## 📚 Dokumen Pendukung
 
-## Menjalankan Project
-
-### Install dependency
-
-```bash
-go mod tidy
-```
-
-### Jalankan aplikasi
-
-```bash
-go run ./cmd/app/main.go
-```
-
-### Build binary
-
-```bash
-go build -o ./bin/apotek ./cmd/app
-./bin/apotek
-```
-
-Port dibaca dengan urutan fallback:
-1. `APP_PORT`
-2. `PORT`
-3. `SERVER_PORT`
-4. default `9001`
-
-## Build dan Verifikasi
-
-Build utama yang dipakai selama fase ini:
-
-```bash
-go build -o ./bin/apotek ./cmd/app
-```
-
-Verifikasi runtime dilakukan bertahap dengan:
-- login
-- set branch
-- akses endpoint penting
-- smoke test transaksi utama
-- cek efek stok
-- cek report
-- cek export
-
-## Catatan Penting
-
-- Struktur legacy belum seluruhnya hilang, tetapi bagian aktifnya sudah jauh berkurang
-- Route utama sekarang dipusatkan melalui `internal/adapters/driving/http/routes`
-- Entry point resmi aplikasi adalah `cmd/app/main.go`
-- Refactor dilakukan incremental, tidak one-shot besar, untuk meminimalkan regression
-- Commit kecil yang lolos build dan smoke test lebih diutamakan dibanding refactor besar sekali jalan
-
-## Roadmap Fase Berikutnya
-
-Prioritas terdekat:
-- lanjut merapikan modul transaksi lain dengan pola yang sama
-- memperdalam cleanup sale / duplicate receipt bila masih ada area padat
-- lanjut ke modul seperti first stock, buy return, atau sale return
-- secara bertahap mengurangi sisa ketergantungan ke struktur legacy
-
-## Testing
-
-### Unit / package build check
-
-```bash
-go test ./...
-```
-
-### Runtime smoke test
-
-Lihat ringkasan hasil validasi di:
 - `RUNTIME_AUDIT.md`
 - `REFACTOR_CHECKPOINT.md`
+- `LEGACY_REPLACEMENT_CHECKLIST.md`
+- `POSTMAN_AUDIT_NOTES.md`
+- `API_NORMALIZATION_PLAN.md`
+- `API_CONTRACT_DIFF.md`
 
-## Lisensi
+---
+
+## 📄 Lisensi
 
 Mengikuti lisensi dari project sumber jika tidak ditentukan lain.
