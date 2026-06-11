@@ -13,6 +13,7 @@ Project ini sudah berada pada fase:
 Dokumen progres penting:
 - `RUNTIME_AUDIT.md` → baseline audit runtime
 - `REFACTOR_CHECKPOINT.md` → checkpoint refactor terbaru
+- `LEGACY_REPLACEMENT_CHECKLIST.md` → checklist operasional apakah repo baru sudah cukup aman menggantikan repo lama
 
 ## Fokus Refactor
 
@@ -46,6 +47,7 @@ apotek-clean/
 ├── routes/             # sisa transisi legacy yang belum seluruhnya dihapus
 ├── RUNTIME_AUDIT.md
 ├── REFACTOR_CHECKPOINT.md
+├── LEGACY_REPLACEMENT_CHECKLIST.md
 └── README.md
 ```
 
