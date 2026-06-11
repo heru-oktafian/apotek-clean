@@ -7,6 +7,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:9002").rstrip("/")
@@ -21,6 +22,7 @@ SMOKE_DATE = os.getenv("SMOKE_DATE", "2026-06-12")
 ENABLE_MUTATION = os.getenv("SMOKE_ENABLE_MUTATION", "1") != "0"
 STARTUP_RETRIES = int(os.getenv("SMOKE_STARTUP_RETRIES", "12"))
 STARTUP_DELAY_SECONDS = float(os.getenv("SMOKE_STARTUP_DELAY_SECONDS", "1.5"))
+CASES_PATH = Path(os.getenv("SMOKE_CASES_PATH", Path(__file__).with_name("regression_cases.json")))
 
 
 def rnd(n=5):
@@ -73,6 +75,47 @@ def expect_data_is_list(name, payload):
     return ok
 
 
+def load_cases():
+    with CASES_PATH.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def case_context():
+    return {
+        "MONTH": MONTH,
+        "EMPTY_MONTH": EMPTY_MONTH,
+        "PURCHASE_ID": PURCHASE_ID,
+        "SALE_ID": SALE_ID,
+        "PURCHASE_ID_ENCODED": urllib.parse.quote(PURCHASE_ID),
+        "SALE_ID_ENCODED": urllib.parse.quote(SALE_ID),
+    }
+
+
+def render_path(template, ctx):
+    return template.format(**ctx)
+
+
+def run_case_group(branch_token, cases, group_name):
+    failures = 0
+    ctx = case_context()
+    print(f"[info] menjalankan group: {group_name}")
+    for case in cases:
+        name = case["name"]
+        path = render_path(case["path"], ctx)
+        expected_status = int(case.get("expected_status", 200))
+        expected_content_type = case.get("expected_content_type")
+        expect_list = bool(case.get("expect_data_list", False))
+
+        status, headers, body = request("GET", path, token=branch_token)
+        failures += 0 if expect_status(name, status, expected_status) else 1
+        if status == expected_status and expected_content_type:
+            failures += 0 if expect_content_type(name, headers, expected_content_type) else 1
+        if status == expected_status and expect_list:
+            failures += 0 if expect_data_is_list(name, json_body(body) or {}) else 1
+
+    return failures
+
+
 def login_with_retry():
     last = (0, {}, b"")
     for attempt in range(1, STARTUP_RETRIES + 1):
@@ -86,74 +129,6 @@ def login_with_retry():
             return last
         time.sleep(STARTUP_DELAY_SECONDS)
     return last
-
-
-def run_json_get_cases(branch_token):
-    failures = 0
-    json_cases = [
-        ("profile", "/api/profile", 200),
-        ("expenses_list", f"/api/expenses?page=1&search=&month={MONTH}", 200),
-        ("another_incomes_list", f"/api/another-incomes?page=1&search=&month={MONTH}", 200),
-        ("first_stocks_list", f"/api/first-stocks?page=1&search=&month={MONTH}", 200),
-        ("buy_returns_list", f"/api/buy-returns?page=1&search=&month={MONTH}", 200),
-        ("sale_returns_list", f"/api/sale-returns?page=1&search=&month={MONTH}", 200),
-        ("cmb_purchases", f"/api/cmb-purchases?search=&month={MONTH}", 200),
-        ("cmb_sales", f"/api/cmb-sales?search=&month={MONTH}", 200),
-        ("dashboard_daily_profit", "/api/dashboard/daily-profit-report", 200),
-        ("neraca_saldo", f"/api/report/neraca-saldo?month={MONTH}", 200),
-    ]
-
-    for name, path, expected in json_cases:
-        status, headers, body = request("GET", path, token=branch_token)
-        failures += 0 if expect_status(name, status, expected) else 1
-        if status == expected:
-            failures += 0 if expect_content_type(name, headers, "application/json") else 1
-
-    return failures
-
-
-def run_export_cases(branch_token):
-    failures = 0
-    export_cases = [
-        ("expenses_pdf", f"/api/expenses/pdf?month={MONTH}", "application/pdf"),
-        ("expenses_excel", f"/api/expenses/excel?month={MONTH}", "spreadsheetml"),
-        ("another_incomes_pdf", f"/api/another-incomes/pdf?month={MONTH}", "application/pdf"),
-        ("another_incomes_excel", f"/api/another-incomes/excel?month={MONTH}", "spreadsheetml"),
-        ("first_stocks_pdf", f"/api/first-stocks/pdf?month={MONTH}", "application/pdf"),
-        ("first_stocks_excel", f"/api/first-stocks/excel?month={MONTH}", "spreadsheetml"),
-        ("daily_assets_excel", f"/api/daily-assets/excel?month={MONTH}", "spreadsheetml"),
-    ]
-
-    for name, path, expected_content_type in export_cases:
-        status, headers, body = request("GET", path, token=branch_token)
-        failures += 0 if expect_status(name, status, 200) else 1
-        if status == 200:
-            failures += 0 if expect_content_type(name, headers, expected_content_type) else 1
-
-    return failures
-
-
-def run_return_support_cases(branch_token):
-    failures = 0
-    support_cases = [
-        ("cmb_prod_buy_returns", f"/api/cmb-prod-buy-returns?purchase_id={urllib.parse.quote(PURCHASE_ID)}", 200),
-        ("cmb_prod_sale_returns", f"/api/cmb-prod-sale-returns?sale_id={urllib.parse.quote(SALE_ID)}", 200),
-        ("buy_returns_empty_month", f"/api/buy-returns?page=1&search=&month={EMPTY_MONTH}", 200),
-        ("sale_returns_empty_month", f"/api/sale-returns?page=1&search=&month={EMPTY_MONTH}", 200),
-        ("cmb_purchases_empty_month", f"/api/cmb-purchases?search=&month={EMPTY_MONTH}", 200),
-        ("cmb_sales_empty_month", f"/api/cmb-sales?search=&month={EMPTY_MONTH}", 200),
-        ("cmb_prod_buy_returns_empty", "/api/cmb-prod-buy-returns?purchase_id=PUR000000000000", 200),
-        ("cmb_prod_sale_returns_empty", "/api/cmb-prod-sale-returns?sale_id=SAL000000000000", 200),
-    ]
-
-    for name, path, expected in support_cases:
-        status, headers, body = request("GET", path, token=branch_token)
-        failures += 0 if expect_status(name, status, expected) else 1
-        if status == expected:
-            failures += 0 if expect_content_type(name, headers, "application/json") else 1
-            failures += 0 if expect_data_is_list(name, json_body(body) or {}) else 1
-
-    return failures
 
 
 def run_lightweight_mutation_cases(branch_token):
@@ -210,6 +185,7 @@ def run_lightweight_mutation_cases(branch_token):
 
 def main():
     failures = 0
+    cases = load_cases()
 
     status, headers, body = login_with_retry()
     if not expect_status("login", status, 200):
@@ -240,9 +216,9 @@ def main():
         print("[FAIL] branch_token kosong")
         return 1
 
-    failures += run_json_get_cases(branch_token)
-    failures += run_export_cases(branch_token)
-    failures += run_return_support_cases(branch_token)
+    failures += run_case_group(branch_token, cases.get("json_get_cases", []), "json_get_cases")
+    failures += run_case_group(branch_token, cases.get("export_cases", []), "export_cases")
+    failures += run_case_group(branch_token, cases.get("return_support_cases", []), "return_support_cases")
 
     if ENABLE_MUTATION:
         failures += run_lightweight_mutation_cases(branch_token)

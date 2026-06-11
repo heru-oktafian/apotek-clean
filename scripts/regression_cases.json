@@ -1,0 +1,33 @@
+{
+  "json_get_cases": [
+    {"name": "profile", "path": "/api/profile", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "expenses_list", "path": "/api/expenses?page=1&search=&month={MONTH}", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "another_incomes_list", "path": "/api/another-incomes?page=1&search=&month={MONTH}", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "first_stocks_list", "path": "/api/first-stocks?page=1&search=&month={MONTH}", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "buy_returns_list", "path": "/api/buy-returns?page=1&search=&month={MONTH}", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "sale_returns_list", "path": "/api/sale-returns?page=1&search=&month={MONTH}", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "cmb_purchases", "path": "/api/cmb-purchases?search=&month={MONTH}", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "cmb_sales", "path": "/api/cmb-sales?search=&month={MONTH}", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "dashboard_daily_profit", "path": "/api/dashboard/daily-profit-report", "expected_status": 200, "expected_content_type": "application/json"},
+    {"name": "neraca_saldo", "path": "/api/report/neraca-saldo?month={MONTH}", "expected_status": 200, "expected_content_type": "application/json"}
+  ],
+  "export_cases": [
+    {"name": "expenses_pdf", "path": "/api/expenses/pdf?month={MONTH}", "expected_status": 200, "expected_content_type": "application/pdf"},
+    {"name": "expenses_excel", "path": "/api/expenses/excel?month={MONTH}", "expected_status": 200, "expected_content_type": "spreadsheetml"},
+    {"name": "another_incomes_pdf", "path": "/api/another-incomes/pdf?month={MONTH}", "expected_status": 200, "expected_content_type": "application/pdf"},
+    {"name": "another_incomes_excel", "path": "/api/another-incomes/excel?month={MONTH}", "expected_status": 200, "expected_content_type": "spreadsheetml"},
+    {"name": "first_stocks_pdf", "path": "/api/first-stocks/pdf?month={MONTH}", "expected_status": 200, "expected_content_type": "application/pdf"},
+    {"name": "first_stocks_excel", "path": "/api/first-stocks/excel?month={MONTH}", "expected_status": 200, "expected_content_type": "spreadsheetml"},
+    {"name": "daily_assets_excel", "path": "/api/daily-assets/excel?month={MONTH}", "expected_status": 200, "expected_content_type": "spreadsheetml"}
+  ],
+  "return_support_cases": [
+    {"name": "cmb_prod_buy_returns", "path": "/api/cmb-prod-buy-returns?purchase_id={PURCHASE_ID_ENCODED}", "expected_status": 200, "expected_content_type": "application/json", "expect_data_list": true},
+    {"name": "cmb_prod_sale_returns", "path": "/api/cmb-prod-sale-returns?sale_id={SALE_ID_ENCODED}", "expected_status": 200, "expected_content_type": "application/json", "expect_data_list": true},
+    {"name": "buy_returns_empty_month", "path": "/api/buy-returns?page=1&search=&month={EMPTY_MONTH}", "expected_status": 200, "expected_content_type": "application/json", "expect_data_list": true},
+    {"name": "sale_returns_empty_month", "path": "/api/sale-returns?page=1&search=&month={EMPTY_MONTH}", "expected_status": 200, "expected_content_type": "application/json", "expect_data_list": true},
+    {"name": "cmb_purchases_empty_month", "path": "/api/cmb-purchases?search=&month={EMPTY_MONTH}", "expected_status": 200, "expected_content_type": "application/json", "expect_data_list": true},
+    {"name": "cmb_sales_empty_month", "path": "/api/cmb-sales?search=&month={EMPTY_MONTH}", "expected_status": 200, "expected_content_type": "application/json", "expect_data_list": true},
+    {"name": "cmb_prod_buy_returns_empty", "path": "/api/cmb-prod-buy-returns?purchase_id=PUR000000000000", "expected_status": 200, "expected_content_type": "application/json", "expect_data_list": true},
+    {"name": "cmb_prod_sale_returns_empty", "path": "/api/cmb-prod-sale-returns?sale_id=SAL000000000000", "expected_status": 200, "expected_content_type": "application/json", "expect_data_list": true}
+  ]
+}

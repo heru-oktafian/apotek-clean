@@ -277,6 +277,9 @@ PORT=9017 ./scripts/restart_local.sh
 ./scripts/regression_inventory_smoke.py
 ```
 
+Daftar endpoint baseline-nya disimpan di:
+- `scripts/regression_cases.json`
+
 Opsional ganti base URL / sample ID:
 
 ```bash
