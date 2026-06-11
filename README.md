@@ -278,6 +278,17 @@ SMOKE_SALE_ID=SAL466951VV0DS5 \
 ./scripts/regression_inventory_smoke.py
 ```
 
+#### One command restart + smoke
+```bash
+./scripts/run_local_regression.sh
+```
+
+Opsional ganti port:
+
+```bash
+PORT=9017 ./scripts/run_local_regression.sh
+```
+
 Untuk detail hasil validasi, lihat:
 - `RUNTIME_AUDIT.md`
 - `REFACTOR_CHECKPOINT.md`
