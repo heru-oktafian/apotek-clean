@@ -268,7 +268,14 @@ func GetBuyItemsForReturn(c *fiber.Ctx) error {
 	}
 
 	if len(results) == 0 {
-		return helpers.JSONResponse(c, fiber.StatusOK, "Tidak ada item yang bisa diretur untuk pembelian ini", results)
+		return helpers.JSONResponse(c, fiber.StatusOK, "Tidak ada item yang bisa diretur untuk pembelian ini", []struct {
+			ProID    string `json:"pro_id"`
+			ProName  string `json:"pro_name"`
+			Stock    int    `json:"stock"`
+			UnitID   string `json:"unit_id"`
+			UnitName string `json:"unit_name"`
+			Price    int    `json:"price"`
+		}{})
 	}
 
 	return helpers.JSONResponse(c, fiber.StatusOK, "Data item retur ditemukan", results)
@@ -350,7 +357,7 @@ func GetAllBuyReturns(c *fiber.Ctx) error {
 	}
 
 	// Buat slice baru untuk menampung data yang sudah diformat
-	var formattedBuyReturnsData []models.BuyReturnsResponse
+	formattedBuyReturnsData := make([]models.BuyReturnsResponse, 0, len(buyReturnsFromDB))
 	for _, buyReturn := range buyReturnsFromDB {
 		formattedBuyReturnsData = append(formattedBuyReturnsData, models.BuyReturnsResponse{
 			ID:          buyReturn.ID,
@@ -392,12 +399,12 @@ func CmbPurchase(c *fiber.Ctx) error {
 	}
 
 	// Gunakan struct ringan hanya dengan kolom yang dibutuhkan
-	var purchases []struct {
+	purchases := make([]struct {
 		ID            string    `json:"id"`
 		PurchaseDate  time.Time `json:"purchase_date"`
 		SupplierName  string    `json:"supplier_name"`
 		TotalPurchase int       `json:"total_purchase"`
-	}
+	}, 0)
 
 	query := configs.DB.Table("purchases").
 		Select("purchases.id, purchases.purchase_date, suppliers.name AS supplier_name, purchases.total_purchase").

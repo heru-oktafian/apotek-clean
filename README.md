@@ -251,6 +251,33 @@ go test ./...
 - cek report
 - cek export
 
+### Helper scripts yang sekarang tersedia
+
+#### Restart lokal cepat
+```bash
+./scripts/restart_local.sh
+```
+
+Opsional ganti port:
+
+```bash
+PORT=9017 ./scripts/restart_local.sh
+```
+
+#### Smoke regression baseline berbasis inventory
+```bash
+./scripts/regression_inventory_smoke.py
+```
+
+Opsional ganti base URL / sample ID:
+
+```bash
+BASE_URL=http://127.0.0.1:9017 \
+SMOKE_PURCHASE_ID=PUR49589903CJ0G \
+SMOKE_SALE_ID=SAL466951VV0DS5 \
+./scripts/regression_inventory_smoke.py
+```
+
 Untuk detail hasil validasi, lihat:
 - `RUNTIME_AUDIT.md`
 - `REFACTOR_CHECKPOINT.md`

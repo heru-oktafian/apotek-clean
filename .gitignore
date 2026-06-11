@@ -33,6 +33,10 @@ bin/
 app.log
 nohup.out
 .trash/
+.backup_db/
+app
+API_ENDPOINT_INVENTORY.xlsx
+REFACTOR_PROGRESS.xlsx
 
 # Editor/IDE
 # .idea/

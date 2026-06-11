@@ -342,7 +342,7 @@ func GetAllSaleReturns(c *fiber.Ctx) error {
 	saleReturnsData := *result.(*[]models.AllSaleReturns)
 
 	// Buat slice baru untuk menampung data yang sudah diformat
-	var formattedSaleReturnsData []models.SaleReturnsResponse
+	formattedSaleReturnsData := make([]models.SaleReturnsResponse, 0, len(saleReturnsData))
 	for _, saleReturn := range saleReturnsData {
 		formattedSaleReturnsData = append(formattedSaleReturnsData, models.SaleReturnsResponse{
 			ID:          saleReturn.ID,
@@ -384,12 +384,12 @@ func CmbSale(c *fiber.Ctx) error {
 	}
 
 	// Gunakan struct ringan hanya dengan kolom yang dibutuhkan untuk mengurangi I/O dan marshal
-	var sales []struct {
+	sales := make([]struct {
 		ID        string    `json:"id"`
 		SaleDate  time.Time `json:"sale_date"`
 		TotalSale int       `json:"total_sale"`
 		MemberID  string    `json:"member_id"`
-	}
+	}, 0)
 
 	query := configs.DB.Table("sales").
 		Select("id, sale_date, total_sale, member_id").
