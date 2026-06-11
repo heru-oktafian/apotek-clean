@@ -17,8 +17,13 @@ import (
 func DownloadFileFromGoogleDrive(fileID string) (string, error) {
 	ctx := context.Background()
 
+	credentialsPath, err := ResolveProjectFilePath("credentials.json")
+	if err != nil {
+		return "", fmt.Errorf("gagal resolve credentials.json: %v", err)
+	}
+
 	// Baca credentials.json
-	b, err := os.ReadFile("credentials.json")
+	b, err := os.ReadFile(credentialsPath)
 	if err != nil {
 		return "", fmt.Errorf("gagal membaca credentials.json: %v", err)
 	}
@@ -42,13 +47,18 @@ func DownloadFileFromGoogleDrive(fileID string) (string, error) {
 		return "", fmt.Errorf("gagal mengambil metadata file: %v", err)
 	}
 
+	restDir, err := ResolveProjectDirPath("rest")
+	if err != nil {
+		return "", fmt.Errorf("gagal resolve folder rest/: %v", err)
+	}
+
 	// Pastikan folder rest/ ada
-	if err := os.MkdirAll("rest", os.ModePerm); err != nil {
+	if err := os.MkdirAll(restDir, os.ModePerm); err != nil {
 		return "", fmt.Errorf("gagal membuat folder rest/: %v", err)
 	}
 
 	// Path penyimpanan file
-	savePath := filepath.Join("rest", f.Name)
+	savePath := filepath.Join(restDir, f.Name)
 
 	// Buat file lokal
 	outFile, err := os.Create(savePath)

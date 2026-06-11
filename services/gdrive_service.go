@@ -22,8 +22,13 @@ func UploadFileToGoogleDrive(filePath, fileName string) error {
 	folderID := os.Getenv("GDRIVE_FOLDER_ID")
 	ctx := context.Background()
 
+	credentialsPath, err := ResolveProjectFilePath("credentials.json")
+	if err != nil {
+		return fmt.Errorf("unable to resolve credentials.json: %v", err)
+	}
+
 	// Baca credentials dari file
-	b, err := ioutil.ReadFile("credentials.json")
+	b, err := ioutil.ReadFile(credentialsPath)
 	if err != nil {
 		return fmt.Errorf("unable to read credentials.json: %v", err)
 	}

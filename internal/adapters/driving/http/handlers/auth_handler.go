@@ -6,7 +6,6 @@ import (
 	fmt "fmt"
 	log "log"
 	os "os"
-	filepath "path/filepath"
 	strings "strings"
 	time "time"
 
@@ -141,46 +140,9 @@ func (h *AuthHandler) GetProfile(c *fiber.Ctx) error {
 	return helpers.JSONResponse(c, fiber.StatusOK, "Otoritas : "+userRole, profilStruct)
 }
 
-func resolveMenusJSONPath() (string, error) {
-	candidates := []string{"menus.json"}
-
-	if wd, err := os.Getwd(); err == nil {
-		candidates = append(candidates, filepath.Join(wd, "menus.json"))
-	}
-
-	if exePath, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exePath)
-		candidates = append(candidates,
-			filepath.Join(exeDir, "menus.json"),
-			filepath.Join(exeDir, "..", "menus.json"),
-		)
-	}
-
-	seen := make(map[string]struct{})
-	checked := make([]string, 0, len(candidates))
-	for _, candidate := range candidates {
-		absPath, err := filepath.Abs(candidate)
-		if err != nil {
-			continue
-		}
-		if _, ok := seen[absPath]; ok {
-			continue
-		}
-		seen[absPath] = struct{}{}
-		checked = append(checked, absPath)
-
-		info, err := os.Stat(absPath)
-		if err == nil && !info.IsDir() {
-			return absPath, nil
-		}
-	}
-
-	return "", fmt.Errorf("menus.json not found; checked: %s", strings.Join(checked, ", "))
-}
-
 func (h *AuthHandler) GetMenus(c *fiber.Ctx) error {
 	userRoles, _ := services.GetUserRole(c)
-	menuPath, err := resolveMenusJSONPath()
+	menuPath, err := services.ResolveProjectFilePath("menus.json")
 	if err != nil {
 		log.Printf("Error resolving menus.json: %v", err)
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to read menu data", err)
