@@ -43,8 +43,8 @@ REFACTOR_PROGRESS.xlsx
 # .vscode/
 
 # Python
-*.py
 *.pyc
+!scripts/*.py
 
 # Text files
 *.txt
