@@ -140,6 +140,8 @@ Lalu sesuaikan `.env` dengan environment Anda.
 go mod tidy
 ```
 
+> Opsional, helper command juga tersedia lewat `Makefile`.
+
 ### 4) Jalankan aplikasi
 
 #### Opsi A, langsung dengan Go
@@ -234,6 +236,12 @@ Baru setelah itu Anda dapat token branch-scoped yang dipakai untuk endpoint prot
 go build -o ./bin/apotek ./cmd/app
 ```
 
+Atau lewat Makefile:
+
+```bash
+make build
+```
+
 ### Unit / package build check
 
 ```bash
@@ -298,6 +306,14 @@ Opsional ganti port / tmp dir:
 
 ```bash
 PORT=9019 TMP_DIR=/tmp/apotek-clean-fresh-smoke ./scripts/fresh_clone_smoke.sh
+```
+
+#### Shortcut via Makefile
+```bash
+make restart PORT=9017
+make smoke PORT=9017
+make smoke-fresh PORT=9019
+make test
 ```
 
 Untuk detail hasil validasi, lihat:
