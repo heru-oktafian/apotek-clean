@@ -35,6 +35,7 @@ Saat ini repo sudah berada di fase yang **cukup matang untuk clone, configure, b
 - `REFACTOR_CHECKPOINT.md` → checkpoint refactor terbaru
 - `LEGACY_REPLACEMENT_CHECKLIST.md` → checklist apakah repo baru sudah cukup aman menggantikan repo lama
 - `TEST_COVERAGE_MAP.md` → peta coverage smoke, regression, dan deeper verification saat ini
+- `TRANSACTION_BUSINESS_MATRIX.md` → matriks efek bisnis tiap domain transaksi
 - `API_NORMALIZATION_PLAN.md` → strategi normalisasi API non-breaking
 - `API_CONTRACT_DIFF.md` → catatan old vs new contract
 - `POSTMAN_AUDIT_NOTES.md` → audit endpoint terhadap koleksi lama
