@@ -291,6 +291,19 @@ SMOKE_SALE_ID=SAL466951VV0DS5 \
 ./scripts/regression_inventory_smoke.py
 ```
 
+Catatan coverage runner saat ini juga sudah mencakup mutation top-down batch awal untuk:
+- `member-categories`
+- `members`
+- `product-categories`
+- `units`
+- `products`
+
+Jika ingin menonaktifkan batch mutation master data sementara:
+
+```bash
+SMOKE_ENABLE_MASTER_DATA_MUTATION=0 ./scripts/regression_inventory_smoke.py
+```
+
 #### One command restart + smoke
 ```bash
 ./scripts/run_local_regression.sh

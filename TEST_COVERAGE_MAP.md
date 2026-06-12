@@ -45,6 +45,12 @@ Ciri:
 - baseline export penting
 - empty-state return support
 - mutation ringan `expense` dan `another-income`
+- mutation top-down master data batch awal:
+  - `member-categories` create/detail/update/delete
+  - `members` create/detail/update/delete
+  - `product-categories` create/detail/update/delete
+  - `units` create/detail/update/delete
+  - `products` create/detail/update/delete
 - deep stock check `first_stock` (stok naik saat create, rollback saat delete)
 
 ### ⚠️ Masih butuh verifikasi manual / deeper check
@@ -186,6 +192,27 @@ Tujuan:
 
 Catatan:
 - mutation ini memakai fixture sementara dan dibersihkan dalam flow yang sama
+
+### B4. Mutation regression top-down master data
+Status: **terautomasi**
+
+Cakupan batch awal sesuai urutan inventory yang aman:
+- `member-categories` create/detail/update/delete
+- `members` create/detail/update/delete
+- `product-categories` create/detail/update/delete
+- `units` create/detail/update/delete
+- `products` create/detail/update/delete
+
+Validasi yang dilakukan:
+- create fixture sementara
+- ambil detail resource hasil create
+- update resource
+- delete resource
+- cleanup fallback bila flow terputus di tengah
+
+Nilai tambah:
+- coverage automation sekarang lebih dekat ke inventory top-down nyata, bukan hanya read-only + transaksi ringan
+- blok master data atas yang sebelumnya dominan manual kini sudah punya pagar regresi formal
 
 ---
 

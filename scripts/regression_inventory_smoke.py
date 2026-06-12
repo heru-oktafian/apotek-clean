@@ -20,6 +20,7 @@ MONTH = os.getenv("SMOKE_MONTH", "2026-02")
 EMPTY_MONTH = os.getenv("SMOKE_EMPTY_MONTH", "2099-12")
 SMOKE_DATE = os.getenv("SMOKE_DATE", "2026-06-12")
 ENABLE_MUTATION = os.getenv("SMOKE_ENABLE_MUTATION", "1") != "0"
+ENABLE_MASTER_DATA_MUTATION = os.getenv("SMOKE_ENABLE_MASTER_DATA_MUTATION", "1") != "0"
 ENABLE_DEEP_STOCK = os.getenv("SMOKE_ENABLE_DEEP_STOCK", "1") != "0"
 STOCK_TEST_PRODUCT_ID = os.getenv("SMOKE_STOCK_PRODUCT_ID", "PRD028055HKY6YL")
 STOCK_TEST_EXPIRED_DATE = os.getenv("SMOKE_STOCK_EXPIRED_DATE", "2027-12-31")
@@ -117,6 +118,15 @@ def expect_equal(name, actual, expected):
     return ok
 
 
+def extract_data_id(payload):
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if isinstance(data, dict):
+        return data.get("id")
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        return data[0].get("id")
+    return None
+
+
 def load_cases():
     with CASES_PATH.open("r", encoding="utf-8") as f:
         return json.load(f)
@@ -185,7 +195,7 @@ def run_lightweight_mutation_cases(branch_token):
     status, headers, body = request("POST", "/api/expenses", token=branch_token, json_payload=expense_payload)
     failures += 0 if expect_status("expense_create", status, 200) else 1
     expense_data = body_as_json(body) or {}
-    expense_id = ((expense_data.get("data") or {}).get("id") if isinstance(expense_data, dict) else None)
+    expense_id = extract_data_id(expense_data)
     if not expense_id:
         print("[FAIL] expense_id kosong")
         return failures + 1
@@ -208,7 +218,7 @@ def run_lightweight_mutation_cases(branch_token):
     status, headers, body = request("POST", "/api/another-incomes", token=branch_token, json_payload=income_payload)
     failures += 0 if expect_status("income_create", status, 200) else 1
     income_data = body_as_json(body) or {}
-    income_id = ((income_data.get("data") or {}).get("id") if isinstance(income_data, dict) else None)
+    income_id = extract_data_id(income_data)
     if not income_id:
         print("[FAIL] income_id kosong")
         return failures + 1
@@ -221,6 +231,176 @@ def run_lightweight_mutation_cases(branch_token):
 
     status, headers, body = request("DELETE", f"/api/another-incomes/{income_id}", token=branch_token)
     failures += 0 if expect_status("income_delete", status, 200) else 1
+
+    return failures
+
+
+def run_topdown_master_mutation_cases(branch_token):
+    failures = 0
+    member_category_id = None
+    member_id = None
+    product_category_id = None
+    unit_id = None
+    product_id = None
+
+    try:
+        member_category_payload = {
+            "name": f"Smoke Member Category {rnd()}",
+            "points_conversion_rate": 100,
+        }
+        status, headers, body = request("POST", "/api/member-categories", token=branch_token, json_payload=member_category_payload)
+        failures += 0 if expect_status("member_category_create", status, 200) else 1
+        member_category_payload_json = body_as_json(body) or {}
+        member_category_id = extract_data_id(member_category_payload_json)
+        if not member_category_id:
+            print("[FAIL] member_category_id kosong")
+            return failures + 1
+
+        status, headers, body = request_with_retry("GET", f"/api/member-categories/{member_category_id}", token=branch_token)
+        failures += 0 if expect_status("member_category_detail", status, 200) else 1
+
+        member_category_update_payload = {
+            "name": member_category_payload["name"] + " Updated",
+            "points_conversion_rate": 150,
+        }
+        status, headers, body = request("PUT", f"/api/member-categories/{member_category_id}", token=branch_token, json_payload=member_category_update_payload)
+        failures += 0 if expect_status("member_category_update", status, 200) else 1
+
+        member_payload = {
+            "name": f"Smoke Member {rnd()}",
+            "phone": f"0812{random.randint(1000000, 9999999)}",
+            "address": f"Jl Smoke Member {rnd()}",
+            "member_category_id": member_category_id,
+            "points": 0,
+        }
+        status, headers, body = request("POST", "/api/members", token=branch_token, json_payload=member_payload)
+        failures += 0 if expect_status("member_create", status, 200) else 1
+        member_payload_json = body_as_json(body) or {}
+        member_id = extract_data_id(member_payload_json)
+        if not member_id:
+            print("[FAIL] member_id kosong")
+            return failures + 1
+
+        status, headers, body = request_with_retry("GET", f"/api/members/{member_id}", token=branch_token)
+        failures += 0 if expect_status("member_detail", status, 200) else 1
+
+        member_update_payload = dict(member_payload)
+        member_update_payload["name"] = member_payload["name"] + " Updated"
+        member_update_payload["address"] = member_payload["address"] + " Blok B"
+        member_update_payload["points"] = 10
+        status, headers, body = request("PUT", f"/api/members/{member_id}", token=branch_token, json_payload=member_update_payload)
+        failures += 0 if expect_status("member_update", status, 200) else 1
+
+        product_category_payload = {
+            "name": f"Smoke Product Category {rnd()}",
+        }
+        status, headers, body = request("POST", "/api/product-categories", token=branch_token, json_payload=product_category_payload)
+        failures += 0 if expect_status("product_category_create", status, 200) else 1
+        product_category_payload_json = body_as_json(body) or {}
+        product_category_id = extract_data_id(product_category_payload_json)
+        if not product_category_id:
+            print("[FAIL] product_category_id kosong")
+            return failures + 1
+
+        status, headers, body = request_with_retry("GET", f"/api/product-categories/{product_category_id}", token=branch_token)
+        failures += 0 if expect_status("product_category_detail", status, 200) else 1
+
+        product_category_update_payload = {
+            "name": product_category_payload["name"] + " Updated",
+        }
+        status, headers, body = request("PUT", f"/api/product-categories/{product_category_id}", token=branch_token, json_payload=product_category_update_payload)
+        failures += 0 if expect_status("product_category_update", status, 200) else 1
+
+        unit_payload = {
+            "name": f"Smoke Unit {rnd()}",
+        }
+        status, headers, body = request("POST", "/api/units", token=branch_token, json_payload=unit_payload)
+        failures += 0 if expect_status("unit_create", status, 200) else 1
+        unit_payload_json = body_as_json(body) or {}
+        unit_id = extract_data_id(unit_payload_json)
+        if not unit_id:
+            print("[FAIL] unit_id kosong")
+            return failures + 1
+
+        status, headers, body = request_with_retry("GET", f"/api/units/{unit_id}", token=branch_token)
+        failures += 0 if expect_status("unit_detail", status, 200) else 1
+
+        unit_update_payload = {
+            "name": unit_payload["name"] + " Updated",
+        }
+        status, headers, body = request("PUT", f"/api/units/{unit_id}", token=branch_token, json_payload=unit_update_payload)
+        failures += 0 if expect_status("unit_update", status, 200) else 1
+
+        product_payload = {
+            "sku": f"SMK-{rnd(8).upper()}",
+            "name": f"Smoke Product {rnd()}",
+            "alias": f"SP {rnd()}",
+            "description": "Produk smoke regression",
+            "ingredient": "N/A",
+            "dosage": "1x1",
+            "side_affection": "N/A",
+            "unit_id": unit_id,
+            "purchase_price": 1000,
+            "expired_date": "2027-12-31T00:00:00Z",
+            "sales_price": 1500,
+            "alternate_price": 1400,
+            "product_category_id": product_category_id,
+        }
+        status, headers, body = request("POST", "/api/products", token=branch_token, json_payload=product_payload)
+        failures += 0 if expect_status("product_create", status, 200) else 1
+        product_payload_json = body_as_json(body) or {}
+        product_id = extract_data_id(product_payload_json)
+        if not product_id:
+            print("[FAIL] product_id kosong")
+            return failures + 1
+
+        status, headers, body = request_with_retry("GET", f"/api/products/{product_id}", token=branch_token)
+        failures += 0 if expect_status("product_detail", status, 200) else 1
+
+        product_update_payload = dict(product_payload)
+        product_update_payload["name"] = product_payload["name"] + " Updated"
+        product_update_payload["alias"] = product_payload["alias"] + "U"
+        product_update_payload["sales_price"] = 1600
+        product_update_payload["alternate_price"] = 1450
+        status, headers, body = request("PUT", f"/api/products/{product_id}", token=branch_token, json_payload=product_update_payload)
+        failures += 0 if expect_status("product_update", status, 200) else 1
+
+        status, headers, body = request("DELETE", f"/api/products/{product_id}", token=branch_token)
+        failures += 0 if expect_status("product_delete", status, 200) else 1
+        product_id = None
+
+        status, headers, body = request("DELETE", f"/api/units/{unit_id}", token=branch_token)
+        failures += 0 if expect_status("unit_delete", status, 200) else 1
+        unit_id = None
+
+        status, headers, body = request("DELETE", f"/api/product-categories/{product_category_id}", token=branch_token)
+        failures += 0 if expect_status("product_category_delete", status, 200) else 1
+        product_category_id = None
+
+        status, headers, body = request("DELETE", f"/api/members/{member_id}", token=branch_token)
+        failures += 0 if expect_status("member_delete", status, 200) else 1
+        member_id = None
+
+        status, headers, body = request("DELETE", f"/api/member-categories/{member_category_id}", token=branch_token)
+        failures += 0 if expect_status("member_category_delete", status, 200) else 1
+        member_category_id = None
+    finally:
+        cleanup_targets = [
+            ("product_cleanup", product_id, "/api/products/{}"),
+            ("unit_cleanup", unit_id, "/api/units/{}"),
+            ("product_category_cleanup", product_category_id, "/api/product-categories/{}"),
+            ("member_cleanup", member_id, "/api/members/{}"),
+            ("member_category_cleanup", member_category_id, "/api/member-categories/{}"),
+        ]
+        for label, resource_id, template in cleanup_targets:
+            if not resource_id:
+                continue
+            status, headers, body = request("DELETE", template.format(resource_id), token=branch_token)
+            if status == 200:
+                print(f"[PASS] {label}: status=200")
+            else:
+                print(f"[WARN] {label}: status={status}")
+                failures += 1
 
     return failures
 
@@ -351,6 +531,11 @@ def main():
         failures += run_lightweight_mutation_cases(branch_token)
     else:
         print("[info] mutation smoke dilewati karena SMOKE_ENABLE_MUTATION=0")
+
+    if ENABLE_MASTER_DATA_MUTATION:
+        failures += run_topdown_master_mutation_cases(branch_token)
+    else:
+        print("[info] master data mutation smoke dilewati karena SMOKE_ENABLE_MASTER_DATA_MUTATION=0")
 
     if ENABLE_DEEP_STOCK:
         failures += run_deep_stock_case(branch_token)
