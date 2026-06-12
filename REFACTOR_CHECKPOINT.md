@@ -20,6 +20,13 @@ Pendekatan yang dipakai selama fase ini:
 
 ## Runtime baseline yang sudah aman
 
+Tambahan checkpoint terbaru untuk area operasional repo:
+- audit cron lama vs baru menunjukkan parity source tetap aman
+- gap path backup cron saat app dijalankan dari `bin/` sudah ditemukan dan diperbaiki
+- `DBDump()` kini tervalidasi selalu menulis ke `.backup_db` di root project, bukan ke cwd aktif
+- `AssetCounter(db)` sudah dipicu manual dan terbukti membuat row `daily_assets`, lalu hasil audit dibersihkan lagi agar tidak mengotori data harian
+- commit terbaru untuk hardening cron path: `b27037d` — `fix: resolve cron backup output paths from project root`
+
 Sudah tervalidasi pada runtime:
 - auth dua tahap
 - protected endpoints utama

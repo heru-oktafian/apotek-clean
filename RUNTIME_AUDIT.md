@@ -180,6 +180,28 @@ Excel/PDF berikut menghasilkan file valid dengan content type dan magic bytes ya
 - daily assets (excel)
 - defectas (excel)
 
+## Cron audit
+
+Audit cron lama vs baru menunjukkan parity inti tetap terjaga:
+- `cmd/app/main.go` tetap memanggil `crons.SchedulerJobs(configs.DB)` saat startup
+- scheduler tetap memakai timezone `Asia/Jakarta`
+- cron spec tetap `0 7 * * *`
+- urutan job tetap `DBDump()` lalu `AssetCounter(db)`
+
+Verifikasi runtime/manual yang sudah dibuktikan:
+- `DBDump()` berhasil saat dipicu manual
+- output backup kini selalu diarahkan ke root project `.backup_db`, baik saat app dijalankan dari root repo maupun dari folder `bin/`
+- `AssetCounter(db)` berhasil saat dipicu manual, membuat row `daily_assets` untuk branch aktif yang terdeteksi, lalu hasil audit dibersihkan kembali
+- pada audit manual ini teramati `expected_branch_count = 1`, `created_row_count = 1`, branch yang tersentuh `BRC250118132203`
+
+Perbaikan yang sudah diterapkan:
+- `services/crons/backup_job.go` tidak lagi bergantung pada cwd aktif untuk menentukan lokasi backup
+- helper backup lama di `services/cron_service.go` juga diselaraskan agar resolve path ke root project
+
+Catatan kejujuran audit:
+- job terjadwal natural pukul 07:00 WIB belum ditunggu sampai benar-benar fire secara wall clock pada sesi ini
+- namun wiring scheduler, parity source, trigger manual, dan efek fungsi kedua job inti sudah tervalidasi
+
 ## Known behaviors / catatan penting
 
 1. Auth memang 2 tahap. Token login awal belum cukup untuk akses semua endpoint branch-scoped.
