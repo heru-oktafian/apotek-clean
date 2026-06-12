@@ -45,6 +45,7 @@ Ciri:
 - baseline export penting
 - empty-state return support
 - mutation ringan `expense` dan `another-income`
+- deep stock check `first_stock` (stok naik saat create, rollback saat delete)
 
 ### ⚠️ Masih butuh verifikasi manual / deeper check
 - stok sebelum/sesudah pada semua transaksi inti
@@ -195,7 +196,7 @@ Status: **belum seluruhnya terautomasi**
 Jenis verifikasi ini saat ini lebih banyak terdokumentasi lewat audit runtime dan inventory, belum semuanya menjadi script otomatis.
 
 ### C1. Workflow stok
-Status: **sudah diverifikasi pada beberapa area penting, masih dominan manual/semi-manual**
+Status: **parsial, mulai masuk automation formal**
 
 Sudah pernah dibuktikan:
 - purchase menambah stok
@@ -205,6 +206,10 @@ Sudah pernah dibuktikan:
 - first stock menambah stok
 - duplicate receipt mengurangi stok
 - delete sale / duplicate receipt melakukan rollback stok
+
+Yang sekarang sudah ikut terautomasi:
+- `first_stock` create menaikkan stok produk uji
+- `first_stock` delete mengembalikan stok ke nilai awal
 
 Sumber acuan:
 - `RUNTIME_AUDIT.md`
@@ -257,7 +262,7 @@ Yang masih ideal dikerjakan nanti:
 ## First stock
 - Smoke: **ya**
 - Regression: **ya** untuk list/export baseline
-- Full/deeper: **sudah ada bukti manual stok naik/rollback**, belum jadi automation formal
+- Full/deeper: **mulai terautomasi** untuk stok naik saat create dan rollback saat delete
 
 ## Sale / Purchase / Duplicate Receipt
 - Smoke: **belum dijadikan mutation otomatis penuh**
