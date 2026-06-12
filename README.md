@@ -313,11 +313,29 @@ Opsional ganti port / tmp dir:
 PORT=9019 TMP_DIR=/tmp/apotek-clean-fresh-smoke ./scripts/fresh_clone_smoke.sh
 ```
 
+#### Cron runtime audit
+Helper ini memverifikasi hal-hal berikut secara berulang:
+- backup cron tetap menulis ke root project saat dijalankan dari root maupun `bin/`
+- `AssetCounter(db)` benar membuat row `daily_assets`
+- hasil insert audit dibersihkan lagi
+- startup app benar-benar menyalakan scheduler
+
+```bash
+./scripts/cron_runtime_audit.sh
+```
+
+Opsional ganti port startup verifikasi:
+
+```bash
+PORT=9032 ./scripts/cron_runtime_audit.sh
+```
+
 #### Shortcut via Makefile
 ```bash
 make restart PORT=9017
 make smoke PORT=9017
 make smoke-fresh PORT=9019
+make cron-audit PORT=9032
 make test
 ```
 
