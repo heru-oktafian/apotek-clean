@@ -65,12 +65,16 @@ func RecalculateTotalSale(db *gorm.DB, saleID string) error {
 	for _, item := range saleItems {
 		total += item.SubTotal
 
-		var product models.Product
-		if err := db.Select("purchase_price").First(&product, "id = ?", item.ProductId).Error; err != nil {
-			return err
+		hppPerItem := item.HppSnapshot
+		if hppPerItem <= 0 {
+			var product models.Product
+			if err := db.Select("purchase_price").First(&product, "id = ?", item.ProductId).Error; err != nil {
+				return err
+			}
+			hppPerItem = product.PurchasePrice
 		}
 
-		profitPerItem := item.Price - product.PurchasePrice
+		profitPerItem := item.Price - hppPerItem
 		profitEstimate += profitPerItem * item.Qty
 	}
 

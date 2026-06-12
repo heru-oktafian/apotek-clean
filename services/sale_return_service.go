@@ -58,24 +58,35 @@ func BuildSaleReturnResponse(saleReturn models.SaleReturns, items []models.SaleR
 }
 
 type PreparedSaleReturnItem struct {
-	SaleReturnItem models.SaleReturnItems
-	ActualQtyToAdd int
-	SubTotal       int
+	SaleReturnItem  models.SaleReturnItems
+	ActualQtyToAdd  int
+	SubTotal        int
+	ProfitReduction int
 }
 
-func PrepareSaleReturnItem(itemID, saleReturnID string, item models.SaleReturnItemInput, price int, parsedExpiredDate time.Time) PreparedSaleReturnItem {
-	subTotal := SumSaleReturnSubTotal(price, item.Qty)
+func CalculateSaleReturnProfitReduction(saleItem models.SaleItems, fallbackPurchasePrice int, qty int) int {
+	hppPerItem := saleItem.HppSnapshot
+	if hppPerItem <= 0 {
+		hppPerItem = fallbackPurchasePrice
+	}
+	return (saleItem.Price - hppPerItem) * qty
+}
+
+func PrepareSaleReturnItem(itemID, saleReturnID string, item models.SaleReturnItemInput, saleItem models.SaleItems, fallbackPurchasePrice int, parsedExpiredDate time.Time) PreparedSaleReturnItem {
+	subTotal := SumSaleReturnSubTotal(saleItem.Price, item.Qty)
+	profitReduction := CalculateSaleReturnProfitReduction(saleItem, fallbackPurchasePrice, item.Qty)
 	return PreparedSaleReturnItem{
 		SaleReturnItem: models.SaleReturnItems{
 			ID:           itemID,
 			SaleReturnId: saleReturnID,
 			ProductId:    item.ProductId,
-			Price:        price,
+			Price:        saleItem.Price,
 			Qty:          item.Qty,
 			SubTotal:     subTotal,
 			ExpiredDate:  parsedExpiredDate,
 		},
-		ActualQtyToAdd: item.Qty,
-		SubTotal:       subTotal,
+		ActualQtyToAdd:  item.Qty,
+		SubTotal:        subTotal,
+		ProfitReduction: profitReduction,
 	}
 }

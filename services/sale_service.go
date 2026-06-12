@@ -64,8 +64,9 @@ type PreparedSaleItem struct {
 }
 
 func PrepareSaleItem(item models.SaleItems, lookup SaleProductLookup, runningTotals PreparedSaleTotals) PreparedSaleItem {
+	item.HppSnapshot = lookup.Product.PurchasePrice
 	updatedStock := BuildSaleItemStockUpdate(lookup.Product.Stock, item.Qty)
-	updatedTotals := AddSaleItemContribution(runningTotals, item.Price, lookup.Product.PurchasePrice, item.Qty, item.SubTotal)
+	updatedTotals := AddSaleItemContribution(runningTotals, item.Price, item.HppSnapshot, item.Qty, item.SubTotal)
 	return PreparedSaleItem{
 		Item:         item,
 		UpdatedStock: updatedStock,

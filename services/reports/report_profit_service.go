@@ -3,6 +3,7 @@ package services
 import (
 	"time"
 
+	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	gorm "gorm.io/gorm"
 )
@@ -56,6 +57,7 @@ func SyncDailyProfitReport(db *gorm.DB, branchID, userID string, reportDate time
 		return err
 	}
 
+	report.BranchID = branchID
 	report.UserID = userID
 	report.ReportDate = reportDate
 	report.TotalSales = vsales
@@ -64,5 +66,33 @@ func SyncDailyProfitReport(db *gorm.DB, branchID, userID string, reportDate time
 	if err == gorm.ErrRecordNotFound {
 		return db.Create(&report).Error
 	}
+	return db.Save(&report).Error
+}
+
+func AdjustDailyProfitReportDelta(db *gorm.DB, branchID, userID string, reportDate time.Time, salesDelta, profitDelta int) error {
+	if salesDelta == 0 && profitDelta == 0 {
+		return nil
+	}
+
+	var report models.DailyProfitReport
+	err := db.Where("branch_id = ? AND user_id = ? AND report_date = ?", branchID, userID, reportDate).First(&report).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return err
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		report = models.DailyProfitReport{
+			ID:             helpers.GenerateID("DPR"),
+			ReportDate:     reportDate,
+			UserID:         userID,
+			BranchID:       branchID,
+			TotalSales:     salesDelta,
+			ProfitEstimate: profitDelta,
+		}
+		return db.Create(&report).Error
+	}
+
+	report.TotalSales += salesDelta
+	report.ProfitEstimate += profitDelta
 	return db.Save(&report).Error
 }

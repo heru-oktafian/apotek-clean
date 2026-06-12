@@ -174,6 +174,7 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 		}
 
 		preparedSaleItem := services.PrepareSaleItem(req.SaleItems[i], lookup, calculatedTotals)
+		req.SaleItems[i] = preparedSaleItem.Item
 		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", preparedSaleItem.UpdatedStock.NewStock).Error
 		if err != nil {
 			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", product.Name), err)
@@ -334,7 +335,15 @@ func UpdateSale(c *fiber.Ctx) error {
 
 	profit := 0
 	for _, item := range items {
-		profit += item.SubTotal - item.Price*item.Qty
+		hppPerItem := item.HppSnapshot
+		if hppPerItem <= 0 {
+			var product models.Product
+			if err := db.Select("purchase_price").First(&product, "id = ?", item.ProductId).Error; err != nil {
+				return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal mengambil HPP produk", err)
+			}
+			hppPerItem = product.PurchasePrice
+		}
+		profit += item.SubTotal - hppPerItem*item.Qty
 	}
 
 	// Gunakan diskon baru jika dikirim, jika tidak tetap pakai yang lama
@@ -417,6 +426,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 
 	// Gunakan sales_price dari produk, abaikan inputan frontend
 	item.Price = product.SalesPrice
+	item.HppSnapshot = product.PurchasePrice
 
 	// Cek apakah item dengan sale_id dan product_id sudah ada
 	var existing models.SaleItems
@@ -425,6 +435,7 @@ func CreateSaleItem(c *fiber.Ctx) error {
 		// Sudah ada: update qty dan sub_total
 		existing.Qty += item.Qty
 		existing.Price = product.SalesPrice
+		existing.HppSnapshot = product.PurchasePrice
 		existing.SubTotal = existing.Qty * existing.Price
 
 		if err := db.Save(&existing).Error; err != nil {
@@ -534,6 +545,7 @@ func UpdateSaleItem(c *fiber.Ctx) error {
 	existingItem.ProductId = updatedData.ProductId
 	existingItem.Qty = updatedData.Qty
 	existingItem.Price = product.SalesPrice
+	existingItem.HppSnapshot = product.PurchasePrice
 	existingItem.SubTotal = product.SalesPrice * updatedData.Qty
 
 	if err := db.Save(&existingItem).Error; err != nil {

@@ -9,6 +9,7 @@ import (
 	helpers "apotek-clean/helpers"
 	models "apotek-clean/models"
 	services "apotek-clean/services"
+	reports "apotek-clean/services/reports"
 	fiber "github.com/gofiber/fiber/v2"
 	gorm "gorm.io/gorm"
 )
@@ -123,6 +124,7 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 	}
 
 	var totalReturn int
+	var totalProfitReduction int
 	var saleReturnItems []models.SaleReturnItems
 
 	for _, item := range req.SaleReturnItems {
@@ -154,7 +156,7 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal mengambil info produk untuk %s", item.ProductId), err.Error())
 		}
 
-		preparedItem := services.PrepareSaleReturnItem(helpers.GenerateID("SRI"), saleReturnID, item, saleItem.Price, parsedExpiredDate)
+		preparedItem := services.PrepareSaleReturnItem(helpers.GenerateID("SRI"), saleReturnID, item, saleItem, product.PurchasePrice, parsedExpiredDate)
 
 		// Update stok
 		err = tx.Model(&models.Product{}).Where("id = ?", item.ProductId).
@@ -164,6 +166,7 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 		}
 
 		totalReturn += preparedItem.SubTotal
+		totalProfitReduction += preparedItem.ProfitReduction
 		saleReturnItems = append(saleReturnItems, preparedItem.SaleReturnItem)
 
 	}
@@ -183,6 +186,11 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 	err = createSaleReturnTransactionReport(tx, saleReturn, userID, branchID, nowWIB)
 	if err != nil {
 		return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal membuat laporan transaksi retur penjualan", err.Error())
+	}
+
+	err = reports.AdjustDailyProfitReportDelta(tx, branchID, userID, saleReturn.ReturnDate, -totalReturn, -totalProfitReduction)
+	if err != nil {
+		return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, "Gagal mengoreksi laporan profit harian retur penjualan", err.Error())
 	}
 
 	err = applySaleReturnQuotaIfNeeded(tx, subscriptionType, branchID)
