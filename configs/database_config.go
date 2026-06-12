@@ -55,8 +55,38 @@ func SetupDB() (err error) {
 		log.Fatalf("failed to connect to PostgreSQL database: %v", err)
 	}
 
-	// Migrasi tabel-tabel dari model
-	err = DB.AutoMigrate(
+	// Sync schema model -> database secara idempotent.
+	// GORM AutoMigrate akan mengecek schema yang sudah ada terlebih dahulu.
+	// Jika sudah sesuai, tidak ada perubahan DDL yang dijalankan.
+	// Jika ada kolom / index / constraint yang belum sesuai dengan model,
+	// barulah GORM menyesuaikannya tanpa menghapus data yang ada.
+	err = syncSchema(DB)
+	if err != nil {
+		log.Fatalf("failed to sync schema: %v", err)
+	}
+
+	// Koneksi ke database Redis
+	if redis_host == "" || redis_port == "" {
+		log.Fatalf("❌ REDIS_HOST or REDIS_PORT is not set in .env")
+	}
+
+	RDB = redis.NewClient(&redis.Options{
+		Addr:     redis_host + ":" + redis_port,
+		Password: redis_pass,
+		DB:       redis_db,
+	})
+
+	// Cek koneksi Redis
+	_, err = RDB.Ping(Ctx).Result()
+	if err != nil {
+		log.Fatalf("failed to connect to Redis database: %v", err)
+	}
+
+	return nil
+}
+
+func syncSchema(db *gorm.DB) error {
+	return db.AutoMigrate(
 		&models.User{},
 		&models.Branch{},
 		&models.UserBranch{},
@@ -90,51 +120,4 @@ func SetupDB() (err error) {
 		&models.Defectas{},
 		&models.DefectaItems{},
 	)
-
-	if err != nil {
-		log.Fatalf("failed to automigrate: %v", err)
-	}
-
-	// Panggil fungsi migrasi jika ada perubahan atau penambahan kolom
-	// err = runMigrations(DB)
-	// if err != nil {
-	// 	panic("failed to migrate: " + err.Error())
-	// }
-
-	// Koneksi ke database Redis
-	if redis_host == "" || redis_port == "" {
-		log.Fatalf("❌ REDIS_HOST or REDIS_PORT is not set in .env")
-	}
-
-	RDB = redis.NewClient(&redis.Options{
-		Addr:     redis_host + ":" + redis_port,
-		Password: redis_pass,
-		DB:       redis_db,
-	})
-
-	// Cek koneksi Redis
-	_, err = RDB.Ping(Ctx).Result()
-	if err != nil {
-		log.Fatalf("failed to connect to Redis database: %v", err)
-	}
-
-	return nil
-}
-
-// runMigrations bertanggung jawab untuk menambahkan kolom baru
-func runMigrations(db *gorm.DB) error {
-	// m := db.Migrator()
-
-	// Tambahkan kolom 'subscription_type' jika belum ada
-	// if !m.HasColumn(&models.Branch{}, "SubscriptionType") {
-	// 	err := m.AddColumn(&models.Branch{}, "SubscriptionType")
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to add column 'subscription_type': %w", err)
-	// 	}
-	// 	fmt.Println("Column 'subscription_type' successfully added.")
-	// } else {
-	// 	fmt.Println("Column 'subscription_type' already exists. Skipping.")
-	// }
-
-	return nil
 }
