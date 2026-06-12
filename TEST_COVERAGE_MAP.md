@@ -51,6 +51,8 @@ Ciri:
   - `product-categories` create/detail/update/delete
   - `units` create/detail/update/delete
   - `products` create/detail/update/delete
+  - `supplier-categories` create/detail/update/delete
+  - `suppliers` create/detail/update/delete
 - deep stock check `first_stock` (stok naik saat create, rollback saat delete)
 
 ### ⚠️ Masih butuh verifikasi manual / deeper check
@@ -202,6 +204,8 @@ Cakupan batch awal sesuai urutan inventory yang aman:
 - `product-categories` create/detail/update/delete
 - `units` create/detail/update/delete
 - `products` create/detail/update/delete
+- `supplier-categories` create/detail/update/delete
+- `suppliers` create/detail/update/delete
 
 Validasi yang dilakukan:
 - create fixture sementara

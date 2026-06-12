@@ -297,6 +297,8 @@ Catatan coverage runner saat ini juga sudah mencakup mutation top-down batch awa
 - `product-categories`
 - `units`
 - `products`
+- `supplier-categories`
+- `suppliers`
 
 Jika ingin menonaktifkan batch mutation master data sementara:
 

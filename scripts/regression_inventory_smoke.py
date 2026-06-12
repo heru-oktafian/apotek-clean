@@ -242,6 +242,8 @@ def run_topdown_master_mutation_cases(branch_token):
     product_category_id = None
     unit_id = None
     product_id = None
+    supplier_category_id = None
+    supplier_id = None
 
     try:
         member_category_payload = {
@@ -384,6 +386,59 @@ def run_topdown_master_mutation_cases(branch_token):
         status, headers, body = request("DELETE", f"/api/member-categories/{member_category_id}", token=branch_token)
         failures += 0 if expect_status("member_category_delete", status, 200) else 1
         member_category_id = None
+
+        supplier_category_payload = {
+            "name": f"Smoke Supplier Category {rnd()}",
+        }
+        status, headers, body = request("POST", "/api/supplier-categories", token=branch_token, json_payload=supplier_category_payload)
+        failures += 0 if expect_status("supplier_category_create", status, 200) else 1
+        supplier_category_payload_json = body_as_json(body) or {}
+        supplier_category_id = extract_data_id(supplier_category_payload_json)
+        if not supplier_category_id:
+            print("[FAIL] supplier_category_id kosong")
+            return failures + 1
+
+        status, headers, body = request_with_retry("GET", f"/api/supplier-categories/{supplier_category_id}", token=branch_token)
+        failures += 0 if expect_status("supplier_category_detail", status, 200) else 1
+
+        supplier_category_update_payload = {
+            "name": supplier_category_payload["name"] + " Updated",
+        }
+        status, headers, body = request("PUT", f"/api/supplier-categories/{supplier_category_id}", token=branch_token, json_payload=supplier_category_update_payload)
+        failures += 0 if expect_status("supplier_category_update", status, 200) else 1
+
+        supplier_payload = {
+            "name": f"Smoke Supplier {rnd()}",
+            "phone": f"0813{random.randint(1000000, 9999999)}",
+            "address": f"Jl Smoke Supplier {rnd()}",
+            "pic": f"PIC {rnd()}",
+            "supplier_category_id": supplier_category_id,
+        }
+        status, headers, body = request("POST", "/api/suppliers", token=branch_token, json_payload=supplier_payload)
+        failures += 0 if expect_status("supplier_create", status, 200) else 1
+        supplier_payload_json = body_as_json(body) or {}
+        supplier_id = extract_data_id(supplier_payload_json)
+        if not supplier_id:
+            print("[FAIL] supplier_id kosong")
+            return failures + 1
+
+        status, headers, body = request_with_retry("GET", f"/api/suppliers/{supplier_id}", token=branch_token)
+        failures += 0 if expect_status("supplier_detail", status, 200) else 1
+
+        supplier_update_payload = dict(supplier_payload)
+        supplier_update_payload["name"] = supplier_payload["name"] + " Updated"
+        supplier_update_payload["address"] = supplier_payload["address"] + " Blok C"
+        supplier_update_payload["pic"] = supplier_payload["pic"] + " Updated"
+        status, headers, body = request("PUT", f"/api/suppliers/{supplier_id}", token=branch_token, json_payload=supplier_update_payload)
+        failures += 0 if expect_status("supplier_update", status, 200) else 1
+
+        status, headers, body = request("DELETE", f"/api/suppliers/{supplier_id}", token=branch_token)
+        failures += 0 if expect_status("supplier_delete", status, 200) else 1
+        supplier_id = None
+
+        status, headers, body = request("DELETE", f"/api/supplier-categories/{supplier_category_id}", token=branch_token)
+        failures += 0 if expect_status("supplier_category_delete", status, 200) else 1
+        supplier_category_id = None
     finally:
         cleanup_targets = [
             ("product_cleanup", product_id, "/api/products/{}"),
@@ -391,6 +446,8 @@ def run_topdown_master_mutation_cases(branch_token):
             ("product_category_cleanup", product_category_id, "/api/product-categories/{}"),
             ("member_cleanup", member_id, "/api/members/{}"),
             ("member_category_cleanup", member_category_id, "/api/member-categories/{}"),
+            ("supplier_cleanup", supplier_id, "/api/suppliers/{}"),
+            ("supplier_category_cleanup", supplier_category_id, "/api/supplier-categories/{}"),
         ]
         for label, resource_id, template in cleanup_targets:
             if not resource_id:
