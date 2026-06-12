@@ -187,6 +187,10 @@ Excel/PDF berikut menghasilkan file valid dengan content type dan magic bytes ya
 3. False alarm bisa terjadi bila binary lama masih listen di `:9002`.
 4. Update purchase memiliki time-lock > 1 jam.
 5. Beberapa smoke test transaksi memerlukan data induk valid dan urutan setup yang tepat.
+6. Efek bisnis transaksi return dibedakan tegas:
+   - `buy_return` = koreksi stok + masuk transaction report / neraca, tidak masuk omset atau margin penjualan
+   - `sale_return` = koreksi stok + koreksi omset dan profit harian
+   - `duplicate receipt` = diperlakukan seperti transaksi penjualan, jadi menyentuh stok, omset, dan profit
 
 ## Kesimpulan
 

@@ -355,6 +355,10 @@ Contoh penting:
 
 ### Known behavior yang harus dipahami
 - area `returns` tidak boleh diasumsikan CRUD penuh seperti transaksi lain
+- keputusan efek bisnis return dibedakan tegas:
+  - `buy_return` = koreksi stok + transaction report, tidak ikut omset / margin penjualan
+  - `sale_return` = koreksi stok + koreksi omset / margin harian
+  - `duplicate receipt` = transaksi penjualan penuh, jadi menyentuh stok + omset + margin
 - beberapa sample ID di koleksi lama memang sudah usang, jadi bisa terlihat seolah route bermasalah padahal sample-nya yang tidak valid
 - false alarm runtime bisa muncul kalau port `:9002` masih dipegang binary lama `(deleted)`
 
