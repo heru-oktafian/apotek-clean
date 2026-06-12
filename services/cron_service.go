@@ -12,7 +12,10 @@ import (
 func DumpDatabaseToFile() error {
 	// Format nama file: dd-mm-yyyy.sql
 	filename := os.Getenv("PROJECT_NAME") + "_" + time.Now().Format("02-01-2006") + ".sql"
-	outputDir := "dump"
+	outputDir, err := ResolveProjectDirPath("dump")
+	if err != nil {
+		return fmt.Errorf("failed to resolve dump directory: %w", err)
+	}
 	outputPath := filepath.Join(outputDir, filename)
 
 	// 2. Buat folder dump jika belum ada

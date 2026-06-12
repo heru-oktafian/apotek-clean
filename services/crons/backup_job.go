@@ -7,11 +7,16 @@ import (
 	exec "os/exec"
 	filepath "path/filepath"
 	time "time"
+
+	services "apotek-clean/services"
 )
 
 func DBDump() error {
 	filename := os.Getenv("PROJECT_NAME") + "_" + time.Now().Format("02-01-2006") + ".sql"
-	outputDir := ".backup_db"
+	outputDir, err := services.ResolveProjectDirPath(".backup_db")
+	if err != nil {
+		return fmt.Errorf("failed to resolve dump directory: %w", err)
+	}
 	outputPath := filepath.Join(outputDir, filename)
 
 	// 2. Buat folder dump jika belum ada
