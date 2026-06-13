@@ -1,0 +1,21 @@
+[Unit]
+Description=Apotek Clean API Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jarvis
+Group=jarvis
+WorkingDirectory=/home/jarvis/.dev/apotek-clean
+EnvironmentFile=/home/jarvis/.dev/apotek-clean/.env
+Environment=PORT=9002
+ExecStart=/home/jarvis/.dev/apotek-clean/bin/apotek
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=apotek-clean
+
+[Install]
+WantedBy=multi-user.target
