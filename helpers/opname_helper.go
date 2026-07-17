@@ -8,7 +8,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v2"
 	configs "apotek-clean/configs"
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 	gorm "gorm.io/gorm"
 )
 

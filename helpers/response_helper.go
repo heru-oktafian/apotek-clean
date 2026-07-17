@@ -2,7 +2,7 @@ package helpers
 
 import (
 	fiber "github.com/gofiber/fiber/v2"
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 )
 
 // getStatusText mengembalikan "success" atau "error" berdasarkan kode status HTTP

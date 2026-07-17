@@ -6,7 +6,7 @@ import (
 	time "time"
 
 	config "apotek-clean/configs"
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 	clause "gorm.io/gorm/clause"
 )
 

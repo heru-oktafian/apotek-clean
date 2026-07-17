@@ -2,7 +2,7 @@ package seeders
 
 import (
 	config "apotek-clean/configs"
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 )
 
 // SupplierCategorySeed function untuk menambahkan data supplier category ke database

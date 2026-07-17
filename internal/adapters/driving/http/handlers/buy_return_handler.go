@@ -7,7 +7,7 @@ import (
 
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 	services "apotek-clean/services"
 	fiber "github.com/gofiber/fiber/v2"
 	gorm "gorm.io/gorm"

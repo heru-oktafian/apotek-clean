@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 )
 
 func ParseDefectaDate(inputDate string, fallback time.Time) (time.Time, error) {

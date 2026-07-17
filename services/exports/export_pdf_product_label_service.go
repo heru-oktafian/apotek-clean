@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 
-	"apotek-clean/models"
+	"apotek-clean/internal/core/entities"
 	"github.com/johnfercher/maroto/v2"
 	"github.com/johnfercher/maroto/v2/pkg/components/code"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"

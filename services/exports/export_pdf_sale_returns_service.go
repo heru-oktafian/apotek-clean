@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"apotek-clean/models"
+	"apotek-clean/internal/core/entities"
 	"github.com/johnfercher/maroto/v2"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"

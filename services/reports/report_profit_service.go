@@ -4,7 +4,7 @@ import (
 	"time"
 
 	helpers "apotek-clean/helpers"
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 	gorm "gorm.io/gorm"
 )
 

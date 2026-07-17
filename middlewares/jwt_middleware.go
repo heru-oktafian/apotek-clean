@@ -5,7 +5,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v2"
 	helpers "apotek-clean/helpers"
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 	services "apotek-clean/services"
 )
 

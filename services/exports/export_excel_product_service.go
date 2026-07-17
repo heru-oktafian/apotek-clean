@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"apotek-clean/models"
+	"apotek-clean/internal/core/entities"
 	"github.com/xuri/excelize/v2"
 )
 

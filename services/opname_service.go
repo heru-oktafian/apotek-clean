@@ -3,7 +3,7 @@ package services
 import (
 	"time"
 
-	models "apotek-clean/models"
+	models "apotek-clean/internal/core/entities"
 )
 
 func ParseOpnameDate(inputDate string, fallback time.Time) (time.Time, error) {
