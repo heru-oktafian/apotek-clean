@@ -31,7 +31,6 @@ func RegisterSystemRoutes(app *fiber.App) {
 	app.Get("/api/dashboard/least-selling-report", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), dashboardHandler.GetLeastSellingProducts)
 	app.Get("/api/dashboard/neared-report", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), dashboardHandler.GetExpiringProducts)
 
-	app.Get("/api/daily_asset", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), dailyAssetHandler.GetAllAssets)
 	app.Get("/api/daily-assets", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), dailyAssetHandler.GetAllAssets)
 
 	app.Get("/api/sys-defectas", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), defectaHandler.GetAllDefectas)

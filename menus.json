@@ -232,7 +232,7 @@
                 {
                     "group_menu": "Laporan",
                     "title": "Laporan Aset",
-                    "url": "/api/daily_asset",
+                    "url": "/api/daily-assets",
                     "method": "GET",
                     "access": "get_by_month"
                 },
@@ -516,7 +516,7 @@
                 {
                     "group_menu": "Laporan",
                     "title": "Laporan Aset",
-                    "url": "/api/daily_asset",
+                    "url": "/api/daily-assets",
                     "method": "GET",
                     "access": "get_by_month"
                 },
@@ -800,7 +800,7 @@
                 {
                     "group_menu": "Laporan",
                     "title": "Laporan Aset",
-                    "url": "/api/daily_asset",
+                    "url": "/api/daily-assets",
                     "method": "GET",
                     "access": "get_by_month"
                 },
@@ -1000,7 +1000,7 @@
                 {
                     "group_menu": "Laporan",
                     "title": "Laporan Aset",
-                    "url": "/api/daily_asset",
+                    "url": "/api/daily-assets",
                     "method": "GET",
                     "access": "get_by_month"
                 },
@@ -1176,7 +1176,7 @@
                 {
                     "group_menu": "Laporan",
                     "title": "Laporan Aset",
-                    "url": "/api/daily_asset",
+                    "url": "/api/daily-assets",
                     "method": "GET",
                     "access": "get_by_month"
                 },
