@@ -1,3 +1,9 @@
+// Package excels — HTTP handler layer for Excel exports.
+// This is Layer 2 (HTTP layer) of the export architecture.
+// Layer 1 (services/exports/export_excel_*.go) does the actual Excel file generation.
+// This layer handles: extracting branch_id from JWT, setting Content-Type/Disposition, returning bytes.
+// See: internal/adapters/driving/http/routes/export_routes.go for full architecture overview.
+
 package excels
 
 import (

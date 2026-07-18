@@ -381,7 +381,7 @@ func DeleteSale(c *fiber.Ctx) error {
 	var items []models.SaleItems
 	if err := db.Where("sale_id = ?", id).Find(&items).Error; err == nil {
 		for _, item := range items {
-			_ = services.SubtractProductStock(db, item.ProductId, item.Qty)
+			_ = services.RestoreProductStock(db, item.ProductId, item.Qty)
 		}
 		db.Where("sale_id = ?", id).Delete(&models.SaleItems{})
 	}

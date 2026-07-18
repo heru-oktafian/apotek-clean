@@ -1,3 +1,8 @@
+// Package transactions — HTTP handler layer for PDF exports (Layer 2).
+// Layer 1 (services/exports/export_pdf_*.go) does the actual PDF generation (maroto).
+// This layer handles: extracting branch_id from JWT, setting Content-Type/Disposition, returning bytes.
+// See: internal/adapters/driving/http/routes/export_routes.go for full architecture overview.
+
 package transactions
 
 import (

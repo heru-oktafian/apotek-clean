@@ -38,8 +38,8 @@ func ReduceProductStock(db *gorm.DB, productID string, qty int) error {
 	return nil
 }
 
-// SubtractProductStock menambah stok produk
-func SubtractProductStock(db *gorm.DB, productID string, qty int) error {
+// RestoreProductStock mengembalikan stok produk (undo transaksi sale/duplicate_receipt)
+func RestoreProductStock(db *gorm.DB, productID string, qty int) error {
 	var product models.Product
 	if err := db.First(&product, "id = ?", productID).Error; err != nil {
 		return err

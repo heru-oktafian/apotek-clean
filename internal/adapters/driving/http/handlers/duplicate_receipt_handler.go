@@ -371,7 +371,7 @@ func DeleteDuplicateReceipt(c *fiber.Ctx) error {
 	var items []models.DuplicateReceiptItems
 	if err := db.Where("duplicate_receipt_id = ?", id).Find(&items).Error; err == nil {
 		for _, item := range items {
-			_ = services.SubtractProductStock(db, item.ProductId, item.Qty)
+			_ = services.RestoreProductStock(db, item.ProductId, item.Qty)
 		}
 		db.Where("duplicate_receipt_id = ?", id).Delete(&models.DuplicateReceiptItems{})
 	}

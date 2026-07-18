@@ -1,3 +1,15 @@
+// Export file routes.
+//
+// Architecture — TWO layers per export type:
+//   Layer 1 (service)  : services/exports/export_excel_*.go / export_pdf_*.go
+//                        → actual file generation (excelize / maroto)
+//   Layer 2 (handler)  : services/exports/{excel,pdf}/{transactions,masters,audits}/*.go
+//                        → HTTP layer: extract branch_id from JWT, set headers, send bytes
+//
+// Both layers are intentionally separate (SoC: file-gen concern vs HTTP concern).
+// The same ExportServices struct is used for both Excel and PDF; the difference is
+// which method is called (ExportXxxToExcel vs ExportXxxToPDF).
+
 package routes
 
 import (
@@ -20,7 +32,7 @@ import (
 func RegisterExportRoutes(app *fiber.App) {
 	log.Println("[Route] Initializing internal export routes")
 
-	excelService := export_services.NewExcelServices(configs.DB)
+	excelService := export_services.NewExportService(configs.DB)
 	excelProductHandler := excel_masters.NewExcelProductHandler(excelService)
 	excelUnitHandler := excel_masters.NewExcelUnitHandler(excelService)
 	excelProductCategoryHandler := excel_masters.NewExcelProductCategoryHandler(excelService)
@@ -52,7 +64,7 @@ func RegisterExportRoutes(app *fiber.App) {
 	excelLeastSellingHandler := excel_systems.NewExcelLeastSellingHandler(excelService)
 	excelNeracaSaldoHandler := excel_reports.NewExcelNeracaSaldoHandler(excelService)
 
-	pdfService := export_services.NewPDFService(configs.DB)
+	pdfService := export_services.NewExportService(configs.DB)
 	pdfProductHandler := pdf_masters.NewPdfProductHandler(pdfService)
 	pdfUnitHandler := pdf_masters.NewPdfUnitHandler(pdfService)
 	pdfProductCategoryHandler := pdf_masters.NewPdfProductCategoryHandler(pdfService)
