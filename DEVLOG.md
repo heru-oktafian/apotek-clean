@@ -82,6 +82,16 @@ Repo: `apotek-clean`, working dir: `/home/jarvis/.dev/apotek-clean`
 
 ---
 
+## Sort Ascending Combo Box — Audit ✅
+All product/category combo endpoints already have `ORDER BY name ASC`:
+- `CmbProdSale` → `products.name ASC`
+- `CmbProdPurchase` → `products.name ASC`
+- `GetAllCategory` → `product_categories.name ASC`
+- `GetAllUnit` → `name ASC`
+- `GetAllSupplier` → `name ASC`
+- `GetAllOpname` → `pro.name ASC`
+No changes needed — already correct.
+
 ## Bugs Fixed During Review
 - `stock_trace_service.go`: import `entities` → alias `models`
 - `product_handler.go GetProduct`: missing showcase_stock + warehouse_stock
