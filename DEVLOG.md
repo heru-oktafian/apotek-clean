@@ -17,7 +17,7 @@ Repo: `apotek-clean`, working dir: `/home/jarvis/.dev/apotek-clean`
 
 ### 2. Three-Column Stock (showcase + warehouse + total) ✅
 - **Files**: 15 files changed
-- **Concept**: 
+- **Concept**:
   - `products.showcase_stock` = stok etalase (berubah karena transaksi)
   - `products.warehouse_stock` = stok gudang (base stock)
   - `products.stock` = total (computed, read-only display)
@@ -87,10 +87,16 @@ Repo: `apotek-clean`, working dir: `/home/jarvis/.dev/apotek-clean`
 - `product_handler.go GetProduct`: missing showcase_stock + warehouse_stock
 - `product_handler.go CmbProdSale`: missing warehouse_stock
 
+## Bugs Fixed Today (2026-07-19)
+- **Sort A-Z not working** (`06866dd`): `Paginate()` calls `Count()` then `Scan()` — both mutate GORM query state, clearing ORDER BY. Fix: two separate queries (countQuery for Paginate, dataQuery for ordered data find).
+- **Duplicate alias "pc"** (`06866dd`): countQuery used `Select("pro.id")` which conflicted with existing joins. Fix: countQuery uses minimal `Select("pro.id")` without JOIN pollution; dataQuery rebuilt fresh with full SELECT + ORDER.
+- **Model field name typo**: `UnitID` → `UnitId`, `ProductCategoryID` → `ProductCategoryId` in UpdateProduct.
+
 ## Deployment
 - Commit: a8fb500 ✅ pushed to origin/main
+- Commit: 06866dd ✅ pushed to origin/main (sort fix)
 - Binary: `bin/apotek` 55MB ✅ built
-- Service: `apotek-clean.service` ✅ restarted (PID 22344)
+- Service: `apotek-clean.service` ✅ restarted (PID 22922)
 
 ---
 
