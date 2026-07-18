@@ -116,7 +116,7 @@ func (h *UnitConversionHandler) CmbProdConv(c *fiber.Ctx) error {
 	branchID, _ := services.GetBranchID(c)
 	search := strings.TrimSpace(c.Query("search"))
 	var cmbProducts []models.ProdConvCombo
-	query := configs.DB.Table("products").Select("id as product_id, name as product_name").Where("branch_id = ?", branchID)
+	query := configs.DB.Table("products").Select("id as product_id, name as product_name").Where("branch_id = ?", branchID).Order("name ASC")
 	if search != "" {
 		search = strings.ToLower(search)
 		query = query.Where("LOWER(name) LIKE ?", "%"+search+"%")
