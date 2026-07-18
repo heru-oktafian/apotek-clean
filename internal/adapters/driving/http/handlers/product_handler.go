@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	strings "strings"
+	"strings"
 
 	configs "apotek-clean/configs"
 	helpers "apotek-clean/helpers"
@@ -29,23 +29,16 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 		product.SKU = product.ID
 	}
 	if err := configs.DB.Create(&product).Error; err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to create resource", err)
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal membuat produk", err.Error())
 	}
-	return helpers.JSONResponse(c, fiber.StatusOK, "Resource created successfully", &product)
-}
-
-func (h *ProductHandler) UpdateProduct(c *fiber.Ctx) error {
-	id := c.Params("id")
-	return helpers.UpdateResource(c, configs.DB, &models.Product{}, id)
-}
-
-func (h *ProductHandler) DeleteProduct(c *fiber.Ctx) error {
-	id := c.Params("id")
-	return helpers.DeleteResource(c, configs.DB, &models.Product{}, id)
+	return helpers.JSONResponse(c, fiber.StatusCreated, "Produk berhasil dibuat", product)
 }
 
 func (h *ProductHandler) GetProduct(c *fiber.Ctx) error {
-	id := c.Params("id")
+	id := c.Query("id")
+	if id == "" {
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "ID tidak boleh kosong", nil)
+	}
 	var allProduct []models.ProductDetail
 	if err := configs.DB.
 		Table("products pro").
@@ -62,26 +55,43 @@ func (h *ProductHandler) GetProduct(c *fiber.Ctx) error {
 func (h *ProductHandler) GetAllProduct(c *fiber.Ctx) error {
 	branchID, _ := services.GetBranchID(c)
 	var allProduct []models.ProductDetail
-	baseQuery := configs.DB.Table("products pro").
+
+	// Count query — Paginate mutates its query, so keep it separate from data query
+	countQuery := configs.DB.Table("products pro").
+		Select("pro.id").
+		Joins("LEFT JOIN product_categories pc ON pc.id = pro.product_category_id").
+		Joins("LEFT JOIN units un ON un.id = pro.unit_id").
+		Where("pro.branch_id = ?", branchID)
+
+	// Paginate only for pagination metadata; uses dummy model to avoid premature data scan
+	_, search, total, page, totalPages, limit, err := helpers.Paginate(c, countQuery, new([]models.ProductDetail), []string{"pro.name ILIKE ?", "pro.alias ILIKE ?", "pro.description ILIKE ?", "pro.ingredient ILIKE ?", "pro.dosage ILIKE ?", "pro.side_affection ILIKE ?"})
+	if err != nil {
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get AllProduct failed", err.Error())
+	}
+
+	// Data query — fresh instance with full SELECT + ORDER BY (separate from countQuery so ORDER survives)
+	dataQuery := configs.DB.Table("products pro").
 		Select("pro.id,pro.sku,pro.name, pro.alias, pro.description, pro.ingredient, pro.dosage, pro.side_affection, pro.unit_id, un.name AS unit_name,pro.stock,pro.showcase_stock,pro.warehouse_stock,pro.purchase_price,pro.sales_price,pro.alternate_price,pro.expired_date, pro.product_category_id, pc.name AS product_category_name").
 		Joins("LEFT JOIN product_categories pc ON pc.id = pro.product_category_id").
 		Joins("LEFT JOIN units un ON un.id = pro.unit_id").
 		Where("pro.branch_id = ?", branchID)
 
-	// Paginate helper only for count + search — pass dummy model to avoid premature scan
-	_, search, total, page, totalPages, limit, err := helpers.Paginate(c, baseQuery, new([]models.ProductDetail), []string{"pro.name ILIKE ?", "pro.alias ILIKE ?", "pro.description ILIKE ?", "pro.ingredient ILIKE ?", "pro.dosage ILIKE ?", "pro.side_affection ILIKE ?"})
-	if err != nil {
-		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get AllProduct failed", err.Error())
+	// Apply same search filters that Paginate uses
+	if search != "" {
+		searchLower := strings.ToLower(search)
+		dataQuery = dataQuery.Where(
+			"pro.name ILIKE ? OR pro.alias ILIKE ? OR pro.description ILIKE ? OR pro.ingredient ILIKE ? OR pro.dosage ILIKE ? OR pro.side_affection ILIKE ?",
+			"%"+searchLower+"%", "%"+searchLower+"%", "%"+searchLower+"%", "%"+searchLower+"%", "%"+searchLower+"%", "%"+searchLower+"%",
+		)
 	}
 
-	// Ordered paginated find — AFTER count (Paginate cleared ORDER during Count)
 	offset := (page - 1) * limit
-	err = baseQuery.Order("pro.name ASC").Offset(offset).Limit(limit).Find(&allProduct).Error
+	err = dataQuery.Order("pro.name ASC").Offset(offset).Limit(limit).Find(&allProduct).Error
 	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get AllProduct failed", err.Error())
 	}
 
-	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Products retrieved successfully", search, int(total), page, int(totalPages), int(limit), allProduct)
+	return helpers.JSONResponseGetAll(c, fiber.StatusOK, "Products retrieved successfully", search, int(total), page, totalPages, limit, allProduct)
 }
 
 func (h *ProductHandler) CmbProdSale(c *fiber.Ctx) error {
@@ -116,4 +126,41 @@ func (h *ProductHandler) CmbProdPurchase(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get Combo Purchase Products failed", err)
 	}
 	return helpers.JSONResponse(c, fiber.StatusOK, "Combo Purchase Products retrieved successfully", cmbProducts)
+}
+
+func (h *ProductHandler) UpdateProduct(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var product models.Product
+	if err := configs.DB.Where("id = ?", id).First(&product).Error; err != nil {
+		return helpers.JSONResponse(c, fiber.StatusNotFound, "Produk tidak ditemukan", err)
+	}
+	var newProduct models.Product
+	if err := c.BodyParser(&newProduct); err != nil {
+		return helpers.JSONResponse(c, fiber.StatusBadRequest, "Invalid input", err)
+	}
+	product.Name = newProduct.Name
+	product.SKU = newProduct.SKU
+	product.Alias = newProduct.Alias
+	product.Description = newProduct.Description
+	product.Ingredient = newProduct.Ingredient
+	product.Dosage = newProduct.Dosage
+	product.SideAffection = newProduct.SideAffection
+	product.UnitId = newProduct.UnitId
+	product.ProductCategoryId = newProduct.ProductCategoryId
+	product.PurchasePrice = newProduct.PurchasePrice
+	product.SalesPrice = newProduct.SalesPrice
+	product.AlternatePrice = newProduct.AlternatePrice
+	product.ExpiredDate = newProduct.ExpiredDate
+	if err := configs.DB.Save(&product).Error; err != nil {
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal update produk", err.Error())
+	}
+	return helpers.JSONResponse(c, fiber.StatusOK, "Produk berhasil diupdate", product)
+}
+
+func (h *ProductHandler) DeleteProduct(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if err := configs.DB.Delete(&models.Product{}, "id = ?", id).Error; err != nil {
+		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Gagal hapus produk", err.Error())
+	}
+	return helpers.JSONResponse(c, fiber.StatusOK, "Produk berhasil dihapus", nil)
 }
