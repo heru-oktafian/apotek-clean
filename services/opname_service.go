@@ -25,7 +25,7 @@ type OpnameItemProductSnapshot struct {
 
 func BuildOpnameItemSnapshot(product models.Product, parsedExpiredDate time.Time) OpnameItemProductSnapshot {
 	return OpnameItemProductSnapshot{
-		OldStock:          product.Stock,
+		OldStock:          product.ShowcaseStock,
 		OldPurchasePrice:  product.PurchasePrice,
 		ParsedExpiredDate: parsedExpiredDate,
 	}
@@ -50,7 +50,7 @@ func PrepareOpnameItem(itemID string, input models.CreateOpnameItemInput, snapsh
 	}
 	updates := map[string]interface{}{
 		"expired_date":   snapshot.ParsedExpiredDate,
-		"stock":          input.Qty,
+		"showcase_stock":  input.Qty,
 		"purchase_price": input.Price,
 	}
 	return PreparedOpnameItem{Item: item, ProductUpdates: updates}

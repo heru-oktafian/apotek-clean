@@ -33,11 +33,11 @@ func AddSaleItemContribution(current PreparedSaleTotals, price, purchasePrice, q
 }
 
 type SaleItemStockUpdate struct {
-	NewStock int
+	NewShowcaseStock int
 }
 
-func BuildSaleItemStockUpdate(currentStock, qty int) SaleItemStockUpdate {
-	return SaleItemStockUpdate{NewStock: currentStock - qty}
+func BuildSaleItemStockUpdate(currentShowcaseStock, qty int) SaleItemStockUpdate {
+	return SaleItemStockUpdate{NewShowcaseStock: currentShowcaseStock - qty}
 }
 
 type SaleProductLookup struct {
@@ -51,7 +51,7 @@ func LookupSaleProduct(db *gorm.DB, productID string) (SaleProductLookup, error)
 }
 
 func ValidateSaleStock(product models.Product, qty int) error {
-	if product.Stock < qty {
+	if product.ShowcaseStock < qty {
 		return errors.New("insufficient stock")
 	}
 	return nil
@@ -65,7 +65,7 @@ type PreparedSaleItem struct {
 
 func PrepareSaleItem(item models.SaleItems, lookup SaleProductLookup, runningTotals PreparedSaleTotals) PreparedSaleItem {
 	item.HppSnapshot = lookup.Product.PurchasePrice
-	updatedStock := BuildSaleItemStockUpdate(lookup.Product.Stock, item.Qty)
+	updatedStock := BuildSaleItemStockUpdate(lookup.Product.ShowcaseStock, item.Qty)
 	updatedTotals := AddSaleItemContribution(runningTotals, item.Price, item.HppSnapshot, item.Qty, item.SubTotal)
 	return PreparedSaleItem{
 		Item:         item,

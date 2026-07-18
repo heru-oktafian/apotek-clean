@@ -94,7 +94,7 @@ func PrepareFirstStockItem(itemID, firstStockID string, input models.FirstStockI
 		SubTotal:    item.SubTotal,
 		ExpiredDate: parsedExpiredDate.Format("02 January 2006"),
 	}
-	updates := map[string]interface{}{"stock": lookup.Product.Stock + actualQtyToAdd}
+	updates := map[string]interface{}{"warehouse_stock": lookup.Product.WarehouseStock + actualQtyToAdd}
 	if parsedExpiredDate.Before(lookup.Product.ExpiredDate) {
 		updates["expired_date"] = parsedExpiredDate
 	}

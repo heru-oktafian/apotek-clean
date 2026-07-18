@@ -150,12 +150,12 @@ func CreateDuplicateReceipt(c *fiber.Ctx) error {
 
 		if err := services.ValidateDuplicateReceiptStock(product, req.Items[i].Qty); err != nil {
 			tx.Rollback()
-			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.Stock, req.Items[i].Qty), err)
+			return helpers.JSONResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Insufficient showcase stock for product %s. Available: %d, Requested: %d", product.Name, product.ShowcaseStock, req.Items[i].Qty), err)
 		}
 
 		preparedItem := services.PrepareDuplicateReceiptItem(req.Items[i], lookup, services.PreparedDuplicateReceiptTotals{Total: totalDUR, Profit: totalProfDUR})
 
-		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", preparedItem.UpdatedStock.NewStock).Error
+		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("showcase_stock", preparedItem.UpdatedStock.NewShowcaseStock).Error
 		if err != nil {
 			tx.Rollback()
 			return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to update stock for product", err)

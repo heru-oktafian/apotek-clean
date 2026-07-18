@@ -547,7 +547,7 @@ func UpdateOpnameItemByID(c *fiber.Ctx) error {
 	// Update expired date dan stock produk sesuai inputan
 	if err := db.Model(&models.Product{}).Where("id = ?", updatedItem.ProductId).Updates(map[string]interface{}{
 		"expired_date": preparedUpdate.ParsedDate,
-		"stock":        updatedItem.Qty,
+		"showcase_stock": updatedItem.Qty,
 	}).Error; err != nil {
 		return helpers.JSONResponse(c, http.StatusInternalServerError, "Gagal memperbarui produk: "+err.Error(), err)
 	}
@@ -606,7 +606,7 @@ func GetProductsComboboxByName(c *fiber.Ctx) error {
 
 	var prodCombo []models.ComboboxProducts
 	query := configs.DB.Table("products pro").
-		Select("pro.id AS pro_id, pro.name AS pro_name, pro.unit_id, pro.stock, unt.name AS unit_name, pro.purchase_price AS price").
+		Select("pro.id AS pro_id, pro.name AS pro_name, pro.unit_id, pro.stock, pro.showcase_stock, pro.warehouse_stock, unt.name AS unit_name, pro.purchase_price AS price").
 		Joins("LEFT JOIN units unt ON unt.id = pro.unit_id").
 		Where("pro.branch_id = ?", branchID)
 

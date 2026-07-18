@@ -170,12 +170,12 @@ func CreateSaleTransaction(c *fiber.Ctx) error {
 		product := lookup.Product
 
 		if err := services.ValidateSaleStock(product, req.SaleItems[i].Qty); err != nil {
-			return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.Stock, req.SaleItems[i].Qty), err)
+			return rollbackSaleWithJSON(c, tx, fiber.StatusBadRequest, fmt.Sprintf("Insufficient stock for product %s. Available: %d, Requested: %d", product.Name, product.ShowcaseStock, req.SaleItems[i].Qty), err)
 		}
 
 		preparedSaleItem := services.PrepareSaleItem(req.SaleItems[i], lookup, calculatedTotals)
 		req.SaleItems[i] = preparedSaleItem.Item
-		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("stock", preparedSaleItem.UpdatedStock.NewStock).Error
+		err = tx.Model(&models.Product{}).Where("id = ?", product.ID).Update("showcase_stock", preparedSaleItem.UpdatedStock.NewShowcaseStock).Error
 		if err != nil {
 			return rollbackSaleWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", product.Name), err)
 		}

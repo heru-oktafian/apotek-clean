@@ -160,7 +160,7 @@ func CreateSaleReturnTransaction(c *fiber.Ctx) error {
 
 		// Update stok
 		err = tx.Model(&models.Product{}).Where("id = ?", item.ProductId).
-			Update("stock", gorm.Expr("stock + ?", preparedItem.ActualQtyToAdd)).Error
+			Update("showcase_stock", gorm.Expr("showcase_stock + ?", preparedItem.ActualQtyToAdd)).Error
 		if err != nil {
 			return rollbackSaleReturnWithJSON(c, tx, fiber.StatusInternalServerError, fmt.Sprintf("Gagal memperbarui stok untuk produk %s", item.ProductId), err.Error())
 		}

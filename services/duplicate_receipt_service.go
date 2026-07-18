@@ -43,18 +43,18 @@ func LookupDuplicateReceiptProduct(db *gorm.DB, productID string) (DuplicateRece
 }
 
 func ValidateDuplicateReceiptStock(product models.Product, qty int) error {
-	if product.Stock < qty {
+	if product.ShowcaseStock < qty {
 		return errors.New("insufficient stock")
 	}
 	return nil
 }
 
 type DuplicateReceiptStockUpdate struct {
-	NewStock int
+	NewShowcaseStock int
 }
 
-func BuildDuplicateReceiptStockUpdate(currentStock, qty int) DuplicateReceiptStockUpdate {
-	return DuplicateReceiptStockUpdate{NewStock: currentStock - qty}
+func BuildDuplicateReceiptStockUpdate(currentShowcaseStock, qty int) DuplicateReceiptStockUpdate {
+	return DuplicateReceiptStockUpdate{NewShowcaseStock: currentShowcaseStock - qty}
 }
 
 type PreparedDuplicateReceiptItem struct {
@@ -63,7 +63,7 @@ type PreparedDuplicateReceiptItem struct {
 }
 
 func PrepareDuplicateReceiptItem(item models.DuplicateReceiptItems, lookup DuplicateReceiptProductLookup, runningTotals PreparedDuplicateReceiptTotals) PreparedDuplicateReceiptItem {
-	updatedStock := BuildDuplicateReceiptStockUpdate(lookup.Product.Stock, item.Qty)
+	updatedStock := BuildDuplicateReceiptStockUpdate(lookup.Product.ShowcaseStock, item.Qty)
 	updatedTotals := AddDuplicateReceiptContribution(runningTotals, item.Price, lookup.Product.PurchasePrice, item.Qty, item.SubTotal)
 	return PreparedDuplicateReceiptItem{
 		UpdatedStock: updatedStock,

@@ -73,4 +73,13 @@ func RegisterMasterDataRoutes(app *fiber.App) {
 	app.Put("/api/members/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "finance", "superadmin"), memberHandler.UpdateMember)
 	app.Delete("/api/members/:id", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "finance", "superadmin"), memberHandler.DeleteMember)
 	app.Get("/api/members-combo", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), memberHandler.CmbMember)
+
+	stockMutationHandler := handlers.NewStockMutationHandler()
+	stockTraceHandler := handlers.NewStockTraceHandler()
+
+	app.Post("/api/stock-mutations", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "superadmin"), stockMutationHandler.CreateStockMutation)
+	app.Get("/api/stock-mutations", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), stockMutationHandler.GetStockMutations)
+	app.Get("/api/product-traces", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), stockTraceHandler.GetProductTrace)
+	app.Get("/api/product-traces/range", middlewares.JWTMiddleware, middlewares.RoleMiddleware("administrator", "operator", "cashier", "finance", "superadmin"), stockTraceHandler.GetProductTraceByDateRange)
+
 }

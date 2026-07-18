@@ -9,65 +9,37 @@ import (
 	gorm "gorm.io/gorm"
 )
 
-// Tambah stock product
+// AddProductStock menambah showcase_stock (konteks: sale/add item, rollback)
 func AddProductStock(db *gorm.DB, productID string, qty int) error {
-	var product models.Product
-	if err := db.First(&product, "id = ?", productID).Error; err != nil {
-		return err
-	}
-	product.Stock += qty
-	return db.Save(&product).Error
+	return db.Model(&models.Product{}).Where("id = ?", productID).
+		Update("showcase_stock", gorm.Expr("showcase_stock + ?", qty)).Error
 }
 
-// Kurangi stock product
+// ReduceProductStock mengurangi showcase_stock (konteks: sale)
 func ReduceProductStock(db *gorm.DB, productID string, qty int) error {
 	var product models.Product
 	if err := db.First(&product, "id = ?", productID).Error; err != nil {
 		return err
 	}
 
-	if product.Stock < qty {
+	if product.ShowcaseStock < qty {
 		return errors.New("insufficient stock")
 	}
-	product.Stock -= qty
 
-	if err := db.Save(&product).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return db.Model(&models.Product{}).Where("id = ?", productID).
+		Update("showcase_stock", gorm.Expr("showcase_stock - ?", qty)).Error
 }
 
-// RestoreProductStock mengembalikan stok produk (undo transaksi sale/duplicate_receipt)
+// RestoreProductStock mengembalikan showcase_stock (undo transaksi sale/delete receipt)
 func RestoreProductStock(db *gorm.DB, productID string, qty int) error {
-	var product models.Product
-	if err := db.First(&product, "id = ?", productID).Error; err != nil {
-		return err
-	}
-
-	product.Stock += qty
-
-	if err := db.Save(&product).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return db.Model(&models.Product{}).Where("id = ?", productID).
+		Update("showcase_stock", gorm.Expr("showcase_stock + ?", qty)).Error
 }
 
-// ZeroProductStock kosongkan stok produk
+// ZeroProductStock kosongkan showcase_stock produk
 func ZeroProductStock(db *gorm.DB, productID string, qty int) error {
-	var product models.Product
-	if err := db.First(&product, "id = ?", productID).Error; err != nil {
-		return err
-	}
-
-	product.Stock = 0
-
-	if err := db.Save(&product).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return db.Model(&models.Product{}).Where("id = ?", productID).
+		Update("showcase_stock", 0).Error
 }
 
 // AddProductStockAsync menambah stok produk secara asynchronous

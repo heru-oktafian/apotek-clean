@@ -118,6 +118,8 @@ func syncSchema(db *gorm.DB) error {
 		&models.DailyProfitReport{},
 		&models.DailyAsset{},
 		&models.Defectas{},
-		&models.DefectaItems{},
+		&models.DefectaItems{},models.DefectaItems{},
+		&models.StockMutation{},
+		&models.StockTrace{},
 	)
 }
