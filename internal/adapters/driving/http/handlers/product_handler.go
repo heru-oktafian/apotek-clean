@@ -54,7 +54,7 @@ func (h *ProductHandler) GetProduct(c *fiber.Ctx) error {
 
 func (h *ProductHandler) GetAllProduct(c *fiber.Ctx) error {
 	branchID, _ := services.GetBranchID(c)
-	var allProduct []models.ProductDetail
+	var allProduct []models.ProductAll
 
 	// Count query — Paginate mutates its query, so keep it separate from data query
 	countQuery := configs.DB.Table("products pro").
@@ -64,14 +64,14 @@ func (h *ProductHandler) GetAllProduct(c *fiber.Ctx) error {
 		Where("pro.branch_id = ?", branchID)
 
 	// Paginate only for pagination metadata; uses dummy model to avoid premature data scan
-	_, search, total, page, totalPages, limit, err := helpers.Paginate(c, countQuery, new([]models.ProductDetail), []string{"pro.name ILIKE ?", "pro.alias ILIKE ?", "pro.description ILIKE ?", "pro.ingredient ILIKE ?", "pro.dosage ILIKE ?", "pro.side_affection ILIKE ?"})
+	_, search, total, page, totalPages, limit, err := helpers.Paginate(c, countQuery, new([]models.ProductAll), []string{"pro.name ILIKE ?", "pro.alias ILIKE ?", "pro.description ILIKE ?", "pro.ingredient ILIKE ?", "pro.dosage ILIKE ?", "pro.side_affection ILIKE ?"})
 	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Get AllProduct failed", err.Error())
 	}
 
 	// Data query — fresh instance with full SELECT + ORDER BY (separate from countQuery so ORDER survives)
 	dataQuery := configs.DB.Table("products pro").
-		Select("pro.id,pro.sku,pro.name, pro.alias, pro.description, pro.ingredient, pro.dosage, pro.side_affection, pro.unit_id, un.name AS unit_name,pro.stock,pro.showcase_stock,pro.warehouse_stock,pro.purchase_price,pro.sales_price,pro.alternate_price,pro.expired_date, pro.product_category_id, pc.name AS product_category_name").
+		Select("pro.id,pro.sku,pro.name, pro.alias, pro.description, pro.ingredient, pro.dosage, pro.side_affection, un.name AS unit_name, pro.stock, pro.showcase_stock, pro.warehouse_stock, pro.purchase_price, pro.sales_price, pro.alternate_price, pro.expired_date, pc.name AS product_category_name").
 		Joins("LEFT JOIN product_categories pc ON pc.id = pro.product_category_id").
 		Joins("LEFT JOIN units un ON un.id = pro.unit_id").
 		Where("pro.branch_id = ?", branchID)
