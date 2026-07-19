@@ -35,17 +35,18 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 }
 
 func (h *ProductHandler) GetProduct(c *fiber.Ctx) error {
-	id := c.Query("id")
+	id := c.Params("id")
+	branchID, _ := services.GetBranchID(c)
 	if id == "" {
 		return helpers.JSONResponse(c, fiber.StatusBadRequest, "ID tidak boleh kosong", nil)
 	}
 	var allProduct []models.ProductDetail
 	if err := configs.DB.
 		Table("products pro").
-		Select("pro.id,pro.sku,pro.name,pro.description, pro.ingredient, pro.dosage, pro.side_affection, pro.unit_id AS unit_id,pro.stock,pro.showcase_stock,pro.warehouse_stock,pro.purchase_price,pro.expired_date,pro.sales_price, pro.alternate_price, pro.product_category_id,pc.name AS product_category_name,un.name AS unit_name,pro.branch_id").
+		Select("pro.id,pro.sku,pro.name,pro.alias,pro.description,pro.ingredient,pro.dosage,pro.side_affection,pro.unit_id AS unit_id,pro.stock,pro.showcase_stock,pro.warehouse_stock,pro.purchase_price,pro.expired_date,pro.sales_price,pro.alternate_price,pro.product_category_id,pc.name AS product_category_name,un.name AS unit_name,pro.branch_id").
 		Joins("LEFT JOIN product_categories pc ON pc.id = pro.product_category_id").
 		Joins("LEFT JOIN units un ON un.id = pro.unit_id").
-		Where("pro.id = ?", id).
+		Where("pro.id = ? AND pro.branch_id = ?", id, branchID).
 		Scan(&allProduct).Error; err != nil {
 		return helpers.JSONResponse(c, fiber.StatusNotFound, "Data tidak ditemukan", err)
 	}
