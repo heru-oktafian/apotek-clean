@@ -38,6 +38,16 @@ func (h *StockTraceHandler) GetProductTrace(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get product traces", err.Error())
 	}
 
+	// Attach branch_name
+	for i := range traces {
+		var branchName string
+		configs.DB.Table("branches").
+			Select("branch_name").
+			Where("id = ?", traces[i].BranchID).
+			Scan(&branchName)
+		traces[i].BranchName = branchName
+	}
+
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
 		totalPages++
@@ -81,6 +91,16 @@ func (h *StockTraceHandler) GetProductTraceByDateRange(c *fiber.Ctx) error {
 	traces, total, err := services.GetProductTraceByDateRange(configs.DB, productID, branchID, startDate, endDate, page, limit)
 	if err != nil {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get product traces", err.Error())
+	}
+
+	// Attach branch_name
+	for i := range traces {
+		var branchName string
+		configs.DB.Table("branches").
+			Select("branch_name").
+			Where("id = ?", traces[i].BranchID).
+			Scan(&branchName)
+		traces[i].BranchName = branchName
 	}
 
 	totalPages := int(total) / limit

@@ -90,6 +90,7 @@ All product/category combo endpoints already have `ORDER BY name ASC`:
 - `GetAllUnit` → `name ASC`
 - `GetAllSupplier` → `name ASC`
 - `GetAllOpname` → `pro.name ASC`
+- `CmbProdConv` → `name ASC`
 No changes needed — already correct.
 
 ## Bugs Fixed During Review

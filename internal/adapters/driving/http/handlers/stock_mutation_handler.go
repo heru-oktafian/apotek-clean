@@ -72,6 +72,16 @@ func (h *StockMutationHandler) GetStockMutations(c *fiber.Ctx) error {
 		return helpers.JSONResponse(c, fiber.StatusInternalServerError, "Failed to get stock mutations", err.Error())
 	}
 
+	// Attach branch_name via LEFT JOIN
+	for i := range mutations {
+		var branchName string
+		configs.DB.Table("branches").
+			Select("branch_name").
+			Where("id = ?", mutations[i].BranchID).
+			Scan(&branchName)
+		mutations[i].BranchName = branchName
+	}
+
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
 		totalPages++
